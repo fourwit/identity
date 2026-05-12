@@ -1,0 +1,22 @@
+{
+    "name": "Identity",
+    "alias": "identity",
+    "description": "Production-ready User Identity Management Module for Laravel 13+ - Universal identity management with extensibility",
+    "keywords": [
+        "laravel",
+        "user",
+        "identity",
+        "authentication",
+        "user-management"
+    ],
+    "priority": 10,
+    "providers": [
+        "Modules\\Identity\\Providers\\UserServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": [],
+    "version": "1.0.0",
+    "author": "Fourwit",
+    "license": "MIT"
+}

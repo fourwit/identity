@@ -1,0 +1,62 @@
+{
+    "name": "fourwit/identity",
+    "description": "Production-ready User Identity Management Module for Laravel 13+",
+    "keywords": [
+        "laravel",
+        "module",
+        "user",
+        "identity",
+        "authentication",
+        "user-management",
+        "api",
+        "blade"
+    ],
+    "license": "MIT",
+    "version": "1.0.0",
+    "authors": [
+        {
+            "name": "Prince Gautam",
+            "email": "goutamprince@gmail.com",
+            "role": "Lead Developer",
+            "homepage": "https://fourwit.com"
+        },
+        {
+            "name": "Fourwit Technologies Pvt. Ltd.",
+            "role": "Company",
+            "homepage": "https://fourwit.com"
+        }
+    ],
+    "homepage": "https://github.com/fourwit/identity",
+    "support": {
+        "issues": "https://github.com/fourwit/identity/issues",
+        "source": "https://github.com/fourwit/identity"
+    },
+    "require": {
+        "php": "^8.4",
+        "nwidart/laravel-modules": "^13.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Identity\\": "app/",
+            "Modules\\Identity\\Database\\Factories\\": "database/factories/",
+            "Modules\\Identity\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Identity\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Modules\\Identity\\Providers\\UserServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
