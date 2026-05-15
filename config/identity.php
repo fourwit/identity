@@ -25,7 +25,7 @@ return [
     // ============================================
     // Required Fields
     // ============================================
-    'require_email' => false,                   // Email is required during creation
+    'require_email' => true,                   // Email is required during creation
     'require_phone' => false,                  // Phone is optional
     'require_username' => false,               // Username is required
     'allow_phone_only_accounts' => false,      // Allow users without email

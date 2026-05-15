@@ -15,15 +15,8 @@
     "version": "1.0.0",
     "authors": [
         {
-            "name": "Prince Gautam",
-            "email": "goutamprince@gmail.com",
-            "role": "Lead Developer",
-            "homepage": "https://fourwit.com"
-        },
-        {
             "name": "Fourwit Technologies Pvt. Ltd.",
-            "role": "Company",
-            "homepage": "https://fourwit.com"
+            "email": "admin@fourwittechnologies.com"
         }
     ],
     "homepage": "https://github.com/fourwit/identity",

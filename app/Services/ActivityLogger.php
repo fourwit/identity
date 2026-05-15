@@ -12,7 +12,7 @@ class ActivityLogger
         string $description,
         $subject = null,
         array $properties = [],
-        string $event = null,
+        ?string $event = null,
         string $source = 'web'
     ) {
         $causer = Auth::user();

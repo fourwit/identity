@@ -44,9 +44,11 @@ class UserApiTest extends TestCase
     public function test_that_can_create_user_via_api()
     {
         $response = $this->postJson('/api/v1/users', [
-            'name'   => 'API User',
-            'email'  => 'api@example.com',
-            'status' => 'active',
+            'name'       => 'API User',
+            'first_name' => 'API',
+            'last_name'  => 'User',
+            'email'      => 'api@example.com',
+            'status'     => 'active',
         ]);
 
         $response->assertStatus(201);
@@ -85,9 +87,11 @@ class UserApiTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->putJson("/api/v1/users/{$user->id}", [
-            'name'   => 'Updated',
-            'email'  => $user->email,
-            'status' => 'active',
+            'name'       => 'Updated',
+            'first_name' => $user->first_name ?? 'Updated',
+            'last_name'  => $user->last_name,
+            'email'      => $user->email,
+            'status'     => 'active',
         ]);
 
         $response->assertStatus(200);
@@ -106,9 +110,11 @@ class UserApiTest extends TestCase
     public function test_that_creating_user_logs_activity_via_api()
     {
         $this->postJson('/api/v1/users', [
-            'name'   => 'API Log Test',
-            'email'  => 'apilog@example.com',
-            'status' => 'active',
+            'name'       => 'API Log Test',
+            'first_name' => 'API',
+            'last_name'  => 'Log',
+            'email'      => 'apilog@example.com',
+            'status'     => 'active',
         ]);
 
         $this->assertDatabaseHas('activity_logs', [

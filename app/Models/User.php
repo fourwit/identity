@@ -8,9 +8,17 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+
+use Modules\Identity\Contracts\HasAvatar;
 use Modules\Identity\Database\Factories\UserFactory;
 
-class User extends Authenticatable
+/**
+ * This model implements HasAvatar contract.
+ * The actual implementation (upload, crop, resize, etc.) 
+ * will be handled by the future Media Module.
+ */
+
+class User extends Authenticatable implements HasAvatar
 {
     use HasFactory, Notifiable, SoftDeletes;
 
@@ -50,6 +58,11 @@ class User extends Authenticatable
         });
     }
 
+    protected static function newFactory()
+    {
+        return UserFactory::new();
+    }
+
     // Accessors
     protected function fullName(): Attribute
     {
@@ -83,8 +96,20 @@ class User extends Authenticatable
         $this->update(['metadata' => $metadata]);
     }
 
-    protected static function newFactory()
+    public function getAvatarUrl(): ?string
     {
-        return UserFactory::new();
+        return $this->avatar; // or return asset('storage/' . $this->avatar);
+    }
+
+    public function setAvatar(string $path): void
+    {
+        $this->avatar = $path;
+        $this->save();
+    }
+
+    public function removeAvatar(): void
+    {
+        $this->avatar = null;
+        $this->save();
     }
 }

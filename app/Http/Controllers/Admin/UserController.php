@@ -4,9 +4,14 @@ namespace Modules\Identity\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Modules\Identity\Models\User;
+
+use Modules\Identity\DTOs\UserData;
+use Modules\Identity\Actions\CreateUserAction;
+use Modules\Identity\Actions\UpdateUserAction;
+use Modules\Identity\Actions\DeleteUserAction;
+
 use Modules\Identity\Http\Requests\Admin\StoreUserRequest;
 use Modules\Identity\Http\Requests\Admin\UpdateUserRequest;
-use Modules\Identity\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
@@ -41,18 +46,11 @@ class UserController extends Controller
         return view('identity::admin.create');
     }
 
-    public function store(StoreUserRequest $request)
+    public function store(StoreUserRequest $request, CreateUserAction $action)
     {
-        $user = User::create($request->validated());
-
-        // Log Activity (Web)
-        ActivityLogger::log(
-            "Created new user: {$user->name}",
-            $user,
-            ['email' => $user->email, 'status' => $user->status],
-            'created',
-            $this->source
-        );
+        
+        $data = UserData::fromRequest($request);
+        $user = $action->execute($data, 'web');
 
         return redirect()
             ->route('admin.users.index')
@@ -64,38 +62,19 @@ class UserController extends Controller
         return view('identity::admin.edit', compact('user'));
     }
 
-    public function update(UpdateUserRequest $request, User $user)
+    public function update(UpdateUserRequest $request, User $user, UpdateUserAction $action)
     {
-        $oldData = $user->only(['name', 'email', 'status']);
-        $user->update($request->validated());
-
-        // Log Activity (Web)
-        ActivityLogger::log(
-            "Updated user: {$user->name}",
-            $user,
-            ['old' => $oldData, 'new' => $user->only(['name', 'email', 'status'])],
-            'updated',
-            $this->source
-        );
+        $data = UserData::fromRequest($request);
+        $action->execute($user, $data, 'web');
 
         return redirect()
             ->route('admin.users.index')
             ->with('success', 'User updated successfully.');
     }
 
-    public function destroy(User $user)
+    public function destroy(User $user, DeleteUserAction $action)
     {
-        $userName = $user->name;
-        $user->delete();
-
-        // Log Activity (Web)
-        ActivityLogger::log(
-            "Deleted user: {$userName}",
-            null,
-            ['deleted_user_id' => $user->id, 'name' => $userName],
-            'deleted',
-            $this->source
-        );
+        $action->execute($user, 'web');
 
         return redirect()
             ->route('admin.users.index')

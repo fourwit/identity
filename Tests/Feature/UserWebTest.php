@@ -32,9 +32,11 @@ class UserWebTest extends TestCase
     public function test_that_can_create_a_new_user()
     {
         $response = $this->post('/admin/users', [
-            'name'   => 'John Doe',
-            'email'  => 'john@example.com',
-            'status' => 'active',
+            'name'       => 'John Doe',
+            'first_name' => 'John',
+            'last_name'  => 'Doe',
+            'email'      => 'john@example.com',
+            'status'     => 'active',
         ]);
 
         $response->assertRedirect('/admin/users');
@@ -55,9 +57,11 @@ class UserWebTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->put("/admin/users/{$user->id}", [
-            'name'   => 'Updated Name',
-            'email'  => $user->email,
-            'status' => 'active',
+            'name'       => 'Updated Name',
+            'first_name' => $user->first_name ?? 'Updated',
+            'last_name'  => $user->last_name,
+            'email'      => $user->email,
+            'status'     => 'active',
         ]);
 
         $response->assertRedirect('/admin/users');
@@ -104,9 +108,11 @@ class UserWebTest extends TestCase
     public function test_that_creating_user_logs_activity()
     {
         $this->post('/admin/users', [
-            'name'   => 'Web Log Test',
-            'email'  => 'weblog@example.com',
-            'status' => 'active',
+            'name'       => 'Web Log Test',
+            'first_name' => 'Web',
+            'last_name'  => 'Log',
+            'email'      => 'weblog@example.com',
+            'status'     => 'active',
         ]);
 
         $this->assertDatabaseHas('activity_logs', [

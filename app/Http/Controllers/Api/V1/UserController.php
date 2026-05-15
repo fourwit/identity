@@ -4,10 +4,14 @@ namespace Modules\Identity\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use Modules\Identity\Models\User;
+use Modules\Identity\DTOs\UserData;
+use Modules\Identity\Actions\CreateUserAction;
+use Modules\Identity\Actions\UpdateUserAction;
+use Modules\Identity\Actions\DeleteUserAction;
+
 use Modules\Identity\Http\Requests\Api\StoreUserRequest;
 use Modules\Identity\Http\Requests\Api\UpdateUserRequest;
 use Modules\Identity\Transformers\UserResource;
-use Modules\Identity\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Exception;
 
@@ -47,18 +51,10 @@ class UserController extends BaseApiController
         ]);
     }
 
-    public function store(StoreUserRequest $request)
+    public function store(StoreUserRequest $request, CreateUserAction $action)
     {   
-        $user = User::create($request->validated());
-
-        // Log Activity
-        ActivityLogger::log(
-            "Created new user: {$user->name}",
-            $user,
-            ['email' => $user->email, 'status' => $user->status],
-            'created',
-            $this->source
-        );
+        $data = UserData::fromRequest($request);
+        $user = $action->execute($data, 'api');
 
         return $this->successResponse(
             new UserResource($user),
@@ -81,7 +77,7 @@ class UserController extends BaseApiController
         );
     }
 
-    public function update(UpdateUserRequest $request, $id)
+    public function update(UpdateUserRequest $request, $id, UpdateUserAction $action)
     {
         $user = User::find($id);
 
@@ -89,17 +85,8 @@ class UserController extends BaseApiController
             return $this->notFoundResponse('User not found');
         }
 
-        $oldData = $user->only(['name', 'email', 'status']);
-        $user->update($request->validated());
-
-        // Log Activity
-        ActivityLogger::log(
-            "Updated user: {$user->name}",
-            $user,
-            ['old' => $oldData, 'new' => $user->only(['name', 'email', 'status'])],
-            'updated',
-            $this->source
-        );
+        $data = UserData::fromRequest($request);
+        $user = $action->execute($user, $data, 'api');
 
         return $this->successResponse(
             new UserResource($user),
@@ -107,7 +94,7 @@ class UserController extends BaseApiController
         );
     }
 
-    public function destroy($id)
+    public function destroy($id, DeleteUserAction $action)
     {
         $user = User::find($id);
 
@@ -115,17 +102,7 @@ class UserController extends BaseApiController
             return $this->notFoundResponse('User not found');
         }
 
-        $userName = $user->name;
-        $user->delete();
-
-        // Log Activity
-        ActivityLogger::log(
-            "Deleted user: {$userName}",
-            null,
-            ['deleted_user_id' => $id, 'name' => $userName],
-            'deleted',
-            $this->source
-        );
+        $action->execute($user, 'api');
 
         return $this->successResponse(null, 'User deleted successfully', 200);
     }

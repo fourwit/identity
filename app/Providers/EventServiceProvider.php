@@ -11,7 +11,17 @@ class EventServiceProvider extends ServiceProvider
      *
      * @var array<string, array<int, string>>
      */
-    protected $listen = [];
+    protected $listen = [
+        \Modules\Identity\Events\UserCreated::class => [
+            \Modules\Identity\Listeners\LogUserActivity::class,
+        ],
+        \Modules\Identity\Events\UserUpdated::class => [
+            \Modules\Identity\Listeners\LogUserActivity::class,
+        ],
+        \Modules\Identity\Events\UserDeleted::class => [
+            \Modules\Identity\Listeners\LogUserActivity::class,
+        ],
+    ];
 
     /**
      * Indicates if events should be discovered.
