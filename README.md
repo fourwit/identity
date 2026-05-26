@@ -350,3 +350,168 @@ The Identity module acts as the foundation for the upcoming Fourwit ecosystem. T
 4. **Tenancy Module (`fourwit/tenancy`):** For B2B multi-tenant SaaS scoping.
 5. **Notifications Module (`fourwit/notifications`):** Listens to Identity Events to dispatch emails, SMS, and Slack webhooks.
 6. **Billing Module (`fourwit/billing`):** Stripe integration mapped to Identity users.
+
+---
+
+## 18. Host Application Integration Examples
+
+Because this module is designed for enterprise reuse, host applications (like specific client projects or internal portals) should interact with Identity using strict contracts rather than querying the database directly.
+
+### Facade Examples
+
+The `Identity` facade provides a clean, expressive API for the most common operations.
+```php
+use Modules\Identity\Facades\Identity;
+
+$user = Identity::createUser($dto);
+Identity::updateUser($user, $dto);
+Identity::deleteUser($user);
+```
+**Why Facades?** Facades provide a developer-friendly, memorable syntax for top-level operations without needing to inject services into simple controllers or tinker sessions. 
+**When to use Actions directly?** If you are building a complex background job or a very strict service class where you prefer explicit dependency injection for easier mocking in tests, inject the `CreateUserAction` directly.
+
+### DTO Examples
+
+Whenever a host app needs to create or update a user (e.g. from an API endpoint, Admin panel, or CLI command), it MUST pass a Data Transfer Object (DTO).
+
+```php
+use Modules\Identity\DTOs\UserData;
+
+// From a CLI Command or Seeder
+$dto = new UserData(
+    name: 'Jane Smith',
+    email: 'jane@example.com',
+    status: UserStatus::ACTIVE,
+    password: 'securepassword123'
+);
+$user = Identity::createUser($dto);
+```
+**Why DTOs?** DTOs improve maintainability and type safety. They create a strict validation boundary between the HTTP layer and business logic. If you pass an array, you have no guarantee the keys exist. A DTO guarantees the shape of the data before the action even starts running.
+
+### Action Examples
+
+Actions handle the actual business orchestration. Host apps can utilize them to trigger workflows.
+
+```php
+use Modules\Identity\Actions\DeleteUserAction;
+
+class UserCleanupJob
+{
+    public function handle(DeleteUserAction $deleteAction)
+    {
+        $user = User::find(10);
+        $deleteAction->execute($user);
+    }
+}
+```
+**Why Actions?** Actions isolate business logic into single-responsibility classes. The `DeleteUserAction` doesn't just delete a row; it fires the `UserDeleted` event and logs the activity. Reusable workflows mean the host app never misses an audit log.
+
+### Enum Examples
+
+Instead of typing string literals like `'active'`, the host app must use the `UserStatus` enum.
+
+```php
+use Modules\Identity\Enums\UserStatus;
+
+// In a query
+$activeUsers = User::where('status', UserStatus::ACTIVE)->get();
+
+// In an API filter validation
+$request->validate([
+    'status' => ['nullable', \Illuminate\Validation\Rule::enum(UserStatus::class)]
+]);
+```
+**Why Enums?** Type safety prevents typos. An IDE will autocomplete `UserStatus::ACTIVE`, guaranteeing you never accidentally query for `'activ'`.
+
+### Event Examples
+
+The most powerful way for a host app to interact with Identity is by listening to its events.
+
+```php
+namespace App\Listeners;
+
+use Modules\Identity\Events\UserCreated;
+
+class SyncWithCRMListener
+{
+    public function handle(UserCreated $event)
+    {
+        $user = $event->user;
+        
+        // Host app specific logic (e.g. Stripe, Salesforce, Welcome Email)
+        Mail::to($user->email)->send(new WelcomeEmail($user));
+        StripeService::createCustomer($user);
+    }
+}
+```
+**Why Event-Driven Architecture?** The Identity module doesn't know what Stripe is. By broadcasting events, the host application can hook into the lifecycle (to sync billing systems, create CRM profiles, or audit logs) without tightly coupling the Identity module to specific third-party tools.
+
+### Observer Examples
+
+The `UserObserver` inside the Identity module handles core lifecycle hooks (UUID generation, default status, email lowercasing). 
+
+If a host app needs its own lifecycle hooks, it should register its own Observer in its `AppServiceProvider`:
+```php
+use Modules\Identity\Models\User;
+use App\Observers\HostUserObserver;
+
+User::observe(HostUserObserver::class);
+```
+This ensures future extensibility without modifying the package source code.
+
+### Repository Examples
+
+Host applications should retrieve users via the Repository pattern to ensure consistent queries and swappable implementations.
+
+```php
+use Modules\Identity\Contracts\UserRepositoryInterface;
+
+class AnalyticsService
+{
+    public function __construct(
+        private UserRepositoryInterface $userRepository
+    ) {}
+
+    public function generateReport()
+    {
+        $users = $this->userRepository->search('jane', UserStatus::ACTIVE);
+        // ...
+    }
+}
+```
+**Why Repositories?** Abstraction and testability. If the underlying database changes, or if you need to mock user retrieval in a complex test, you simply swap or mock the interface.
+
+### Query Scope Examples
+
+For quick queries, the `User` model ships with reusable scopes:
+
+```php
+// Retrieve only active users
+$users = User::active()->get();
+
+// Search users by name, email, or phone
+$results = User::search('john')->paginate();
+```
+**Why Scopes?** Reusable querying patterns keep controllers incredibly thin and readable.
+
+### Resource/API Examples
+
+Host applications (especially SPA or Mobile backends) can leverage the Identity module's `UserResource` to guarantee consistent JSON shapes.
+
+```php
+use Modules\Identity\Transformers\UserResource;
+
+Route::get('/api/users/{id}', function ($id) {
+    $user = User::findOrFail($id);
+    return new UserResource($user);
+});
+```
+
+### Web vs API Mode
+
+The Identity module is built to seamlessly support both monolithic Blade projects and headless API/SPA projects.
+
+- **Blade/Web Projects:** You can enable `features.web_views` in `config/identity.php`. This loads the provided Blade templates, utilizing Laravel's standard `web` and `auth` session middlewares.
+- **SPA/API Projects:** By disabling web views and enabling `features.api_routes`, the module acts as a headless microservice. It leverages the `api` and `auth:sanctum` middlewares.
+
+**Why this flexibility?** A freelancer or enterprise team doesn't know if their next client wants a Next.js SPA or a traditional Livewire/Blade monolith. This architecture allows the exact same Identity module to power both flawlessly, drastically increasing development speed, maintainability, and scalability.
