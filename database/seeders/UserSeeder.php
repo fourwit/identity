@@ -10,7 +10,7 @@ class UserSeeder extends Seeder
     {
         // Create Super Admin
         User::updateOrCreate(
-            ['email' => 'admin@moduforge.com'],
+            ['email' => config('identity.branding.admin_email', 'admin@fourwit.com')],
             [
                 'name' => 'Super Admin',
                 'first_name' => 'Super',

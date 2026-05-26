@@ -21,12 +21,12 @@ class UserResource extends JsonResource
         ];
 
         // Only include uuid if enabled in config
-        if (config('identity.enable_uuid')) {
+        if (config('identity.features.uuid')) {
             $data['uuid'] = $this->uuid;
         }
 
         // Only include username if enabled in config
-        if (config('identity.enable_username')) {
+        if (config('identity.features.username')) {
             $data['username'] = $this->username;
         }
 

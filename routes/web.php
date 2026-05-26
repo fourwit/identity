@@ -2,26 +2,39 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Identity\Http\Controllers\Admin\UserController;
-use Modules\Identity\Http\Controllers\Customer\ProfileController;
+use Modules\Identity\Http\Controllers\Account\ProfileController;
+use Modules\Identity\Http\Controllers\Account\PasswordController;
+use Modules\Identity\Http\Controllers\Account\VerificationController;
 use Modules\Identity\Http\Controllers\Admin\ActivityLogController;
 
-// ============================================
-// TEMPORARY: No auth middleware (for testing)
-// We will add proper auth later in Authentication Module
-// ===
-// ->middleware('auth:admin')
-
-Route::prefix('admin')->middleware('web')->group(function () {
+Route::middleware(config('identity.routes.middleware.admin', ['web', 'auth']))
+    ->prefix(config('identity.routes.admin_prefix', 'admin'))
+    ->group(function () {
     Route::resource('users', UserController::class)->names('admin.users');
 
     Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity-logs.index');
 });
 
-// middleware('auth:customer')
-Route::group([], function () {
-    Route::get('/profile', [ProfileController::class, 'show'])->name('customer.profile');
-    Route::put('/profile', [ProfileController::class, 'update']);
+
+
+// Self-service account routes
+Route::middleware(config('identity.routes.middleware.web', ['web', 'auth']))
+->prefix('account')
+->name('identity.account.')
+->group(function () {
+
+    Route::get('/profile', [ProfileController::class, 'show'])
+        ->name('profile.show');
+
+    Route::put('/profile', [ProfileController::class, 'update'])
+        ->name('profile.update');
+
+    Route::put('/password', [PasswordController::class, 'update'])
+        ->name('password.update');
+
+    Route::delete('/avatar', [ProfileController::class, 'removeAvatar'])
+        ->name('avatar.remove');
+
+    Route::get('/verification-status', [VerificationController::class, 'status'])
+        ->name('verification.status');
 });
-
-
-

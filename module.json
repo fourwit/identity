@@ -11,7 +11,7 @@
     ],
     "priority": 10,
     "providers": [
-        "Modules\\Identity\\Providers\\UserServiceProvider"
+        "Modules\\Identity\\Providers\\IdentityServiceProvider"
     ],
     "aliases": {},
     "files": [],

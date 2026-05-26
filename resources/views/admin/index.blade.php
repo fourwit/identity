@@ -108,11 +108,11 @@
                     </td>
                     <td class="px-6 py-4">
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-                            @if($user->status === 'active') bg-green-100 text-green-800
-                            @elseif($user->status === 'inactive') bg-gray-100 text-gray-800
-                            @elseif($user->status === 'suspended') bg-red-100 text-red-800
+                            @if($user->status->label() === 'Active') bg-green-100 text-green-800
+                            @elseif($user->status->label() === 'Inactive') bg-gray-100 text-gray-800
+                            @elseif($user->status->label() === 'Suspended') bg-red-100 text-red-800
                             @else bg-yellow-100 text-yellow-800 @endif">
-                            {{ ucfirst($user->status) }}
+                            {{ ucfirst($user->status->label()) }}
                         </span>
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-600">

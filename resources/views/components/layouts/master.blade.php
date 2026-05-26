@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'User Module') | ModuForge</title>
+    <title>@yield('title', 'User Module') | {{ config('identity.branding.name', 'Fourwit') }}</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -44,10 +44,10 @@
                 <!-- Logo -->
                 <div class="flex items-center gap-3">
                     <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
-                        <span class="text-white font-bold text-xl">M</span>
+                        <span class="text-white font-bold text-xl">{{ substr(config('identity.branding.name', 'Fourwit'), 0, 1) }}</span>
                     </div>
                     <div>
-                        <span class="font-semibold text-xl text-gray-900">ModuForge</span>
+                        <span class="font-semibold text-xl text-gray-900">{{ config('identity.branding.name', 'Fourwit') }}</span>
                         <span class="text-xs text-gray-500 block -mt-1">User Module</span>
                     </div>
                 </div>
@@ -100,7 +100,7 @@
     <!-- Footer -->
     <footer class="border-t border-gray-200 mt-12 py-6">
         <div class="max-w-7xl mx-auto px-6 text-center text-sm text-gray-500">
-            &copy; {{ date('Y') }} ModuForge • Professional Laravel Module Library
+            &copy; {{ date('Y') }} {{ config('identity.branding.name', 'Fourwit') }} • Professional Laravel Module Library
         </div>
     </footer>
 

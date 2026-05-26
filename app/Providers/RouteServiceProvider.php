@@ -35,9 +35,12 @@ class RouteServiceProvider extends ServiceProvider
      */
     protected function mapWebRoutes(): void
     {
-        if (config('identity.enable_web_views', true)) {
-            Route::middleware('web')->group(module_path($this->name, '/routes/web.php'));
+        if (!config('identity.features.web_views', true)) {
+            return; // Web routes disabled
         }
+
+        Route::group([], module_path($this->name, '/routes/web.php'));
+        
     }
 
     /**
@@ -47,8 +50,12 @@ class RouteServiceProvider extends ServiceProvider
      */
     protected function mapApiRoutes(): void
     {
-        if (config('identity.enable_api_routes', true)) {
-            Route::middleware('api')->prefix('api')->name('api.')->group(module_path($this->name, '/routes/api.php'));
+        if (!config('identity.features.api_routes', true)) {
+            return; // API routes disabled
         }
+        
+        Route::prefix(config('identity.routes.api_prefix', 'api/v1'))
+           ->group(module_path($this->name, '/routes/api.php'));
+        
     }
 }

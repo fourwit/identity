@@ -73,13 +73,6 @@ class UserApiTest extends TestCase
         $response->assertStatus(200);
     }
 
-    /** @test */
-    public function test_that_returns_404_when_user_not_found()
-    {
-        $response = $this->getJson('/api/v1/users/999999');
-        $response->assertStatus(404);
-        $response->assertJson(['success' => false]);
-    }
 
     /** @test */
     public function test_that_can_update_user_via_api()
@@ -100,10 +93,19 @@ class UserApiTest extends TestCase
     /** @test */
     public function test_that_can_delete_user_via_api()
     {
-        $user = User::factory()->create();
+        // Create a regular user (not ID 1)
+        $user = User::factory()->create(['id' => 2, 'status' => 'active']);
 
         $response = $this->deleteJson("/api/v1/users/{$user->id}");
+
         $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'message' => 'User deleted successfully'
+        ]);
+
+        // Verify user is deleted
+        $this->assertSoftDeleted('users', ['id' => $user->id]);
     }
 
     /** @test */
@@ -124,16 +126,21 @@ class UserApiTest extends TestCase
     }
 
 
+
     /** @test */
     public function test_that_deleting_user_logs_activity_via_api()
     {
-        $user = User::factory()->create(['name' => 'Delete API Test']);
+        // Create user with ID != 1 to avoid protection check
+        $user = User::factory()->create([
+            'id' => 2,
+            'name' => 'Delete API Test'
+        ]);
 
         $this->deleteJson("/api/v1/users/{$user->id}");
 
         $this->assertDatabaseHas('activity_logs', [
             'description' => 'Deleted user: Delete API Test',
-            'source'      => 'api',
+            'source' => 'api'
         ]);
     }
 
@@ -163,7 +170,7 @@ class UserApiTest extends TestCase
     /** @test */
     public function test_that_uuid_is_generated_when_enabled()
     {
-        config(['identity.enable_uuid' => true]);
+        config(['identity.features.uuid' => true]);
 
         $user = User::factory()->create();
 
@@ -173,7 +180,7 @@ class UserApiTest extends TestCase
     /** @test */
     public function test_that_uuid_is_not_generated_when_disabled()
     {
-        config(['identity.enable_uuid' => false]);
+        config(['identity.features.uuid' => false]);
 
         $user = User::factory()->create();
 
@@ -183,7 +190,7 @@ class UserApiTest extends TestCase
     /** @test */
     public function test_that_uuid_appears_in_api_response_when_enabled()
     {
-        config(['identity.enable_uuid' => true]);
+        config(['identity.features.uuid' => true]);
 
         $user = User::factory()->create();
 
@@ -197,7 +204,7 @@ class UserApiTest extends TestCase
     /** @test */
     public function test_that_username_appears_in_api_response_when_enabled()
     {
-        config(['identity.enable_username' => true]);
+        config(['identity.features.username' => true]);
 
         $user = User::factory()->create(['username' => 'johndoe']);
 
@@ -211,13 +218,72 @@ class UserApiTest extends TestCase
     /** @test */
     public function test_that_username_does_not_appear_when_disabled()
     {
-        config(['identity.enable_username' => false]);
+        config(['identity.features.username' => false]);
 
         $user = User::factory()->create(['username' => 'johndoe']);
 
         $response = $this->getJson("/api/v1/users/{$user->id}");
 
         $response->assertJsonMissing(['username']);
+    }
+
+    /** @test */
+    public function test_that_can_filter_users_by_status_via_api()
+    {
+        User::factory()->create(['status' => 'active']);
+        User::factory()->create(['status' => 'inactive']);
+
+        $response = $this->getJson('/api/v1/users?status=active');
+
+        $response->assertStatus(200);
+        $response->assertJsonCount(1, 'data');
+    }
+
+    // Execptions Testing
+
+    /** @test */
+    public function test_that_returns_404_when_user_not_found()
+    {
+        $response = $this->getJson('/api/v1/users/99999');
+
+        $response->assertStatus(404);
+        $response->assertJson([
+            'success' => false,
+            'message' => 'User not found'
+        ]);
+    }
+
+    /** @test */
+    public function test_that_cannot_delete_main_admin_user()
+    {
+        $admin = User::factory()->create(['id' => 1, 'name' => 'Super Admin', 'status' => 'active']);
+
+        $response = $this->deleteJson('/api/v1/users/1');
+
+        $response->assertStatus(403);
+        $response->assertJson([
+            'success' => false,
+            'message' => 'Cannot delete the main admin user'
+        ]);
+    }
+
+    /** @test */
+    public function test_that_cannot_create_duplicate_email()
+    {
+        User::factory()->create(['email' => 'test@example.com']);
+
+        $response = $this->postJson('/api/v1/users', [
+            'name' => 'Test User',
+            'first_name' => 'Test',
+            'email' => 'test@example.com',
+            'status' => 'active'
+        ]);
+
+        // Accept either 422 (validation) or 409 (conflict)
+        $this->assertTrue(
+            in_array($response->status(), [422, 409]),
+            'Expected status 422 or 409, got: ' . $response->status()
+        );
     }
 
 }

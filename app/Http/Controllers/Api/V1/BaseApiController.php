@@ -35,10 +35,7 @@ class BaseApiController extends Controller
      */
     protected function notFoundResponse(string $message = 'Resource not found'): JsonResponse
     {
-        return response()->json([
-            'success' => false,
-            'message' => $message
-        ], 404);
+        return $this->errorResponse($message, 404);
     }
 
     /**
@@ -51,5 +48,46 @@ class BaseApiController extends Controller
             'message' => $message,
             'errors'  => $errors
         ], 422);
+    }
+
+    /**
+     * Return paginated response with full pagination metadata
+     */
+    protected function paginatedResponse(
+        mixed $resource,
+        string $message = 'Success',
+        $paginator = null
+    ): JsonResponse {
+        // Auto-detect paginator from resource if not passed
+        if ($paginator === null && method_exists($resource, 'resource')) {
+            $paginator = $resource->resource;
+        }
+
+        $pagination = null;
+        if ($paginator instanceof \Illuminate\Contracts\Pagination\Paginator) {
+            $pagination = [
+                'current_page'   => $paginator->currentPage(),
+                'per_page'       => $paginator->perPage(),
+                'next_page_url'  => $paginator->nextPageUrl(),
+                'prev_page_url'  => $paginator->previousPageUrl(),
+            ];
+
+            if ($paginator instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator) {
+                $pagination['total'] = $paginator->total();
+                $pagination['last_page'] = $paginator->lastPage();
+            }
+        }
+
+        $response = [
+            'success' => true,
+            'message' => $message,
+            'data'    => $resource,
+        ];
+
+        if ($pagination !== null) {
+            $response['pagination'] = $pagination;
+        }
+
+        return response()->json($response);
     }
 }

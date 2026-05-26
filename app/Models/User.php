@@ -9,7 +9,11 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
-use Modules\Identity\Contracts\HasAvatar;
+use Modules\Identity\Traits\HasUuid;
+use Modules\Identity\Traits\HasStatus;
+
+
+use Modules\Identity\Enums\UserStatus;
 use Modules\Identity\Database\Factories\UserFactory;
 
 /**
@@ -18,9 +22,9 @@ use Modules\Identity\Database\Factories\UserFactory;
  * will be handled by the future Media Module.
  */
 
-class User extends Authenticatable implements HasAvatar
+class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, HasUuid, HasStatus;
 
     protected $fillable = [
         'uuid', 'name', 'first_name', 'last_name', 'email', 'phone',
@@ -33,6 +37,7 @@ class User extends Authenticatable implements HasAvatar
     ];
 
     protected $casts = [
+        'status' => UserStatus::class,
         'email_verified_at' => 'datetime',
         'phone_verified_at' => 'datetime',
         'last_login_at' => 'datetime',
@@ -40,22 +45,9 @@ class User extends Authenticatable implements HasAvatar
         'metadata' => 'array',
     ];
 
-
-    // Relationships
-    // public function avatar()
-    // {
-    //     return $this->belongsTo(\Modules\Media\App\Models\Media::class, 'avatar_id');
-    // }
-
     protected static function boot()
     {
         parent::boot();
-
-        static::creating(function ($user) {
-            if (config('identity.enable_uuid') && empty($user->uuid)) {
-                $user->uuid = (string) \Illuminate\Support\Str::uuid();
-            }
-        });
     }
 
     protected static function newFactory()
@@ -72,16 +64,52 @@ class User extends Authenticatable implements HasAvatar
     }
 
     // Scopes
+    /**
+     * Scope: Only active users
+     */
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('status', UserStatus::ACTIVE);
     }
 
-    // Helper Methods
-    public function isAdmin(): bool
+    /**
+     * Scope: Only verified users (email + phone verified)
+     */
+    public function scopeVerified($query)
     {
-        // Will be enhanced when RBAC module is added
-        return $this->hasRole('admin') ?? false;
+        return $query->whereNotNull('email_verified_at')
+                    ->whereNotNull('phone_verified_at');
+    }
+
+    /**
+     * Scope: Search by name, email, or phone
+     */
+    public function scopeSearch($query, string $term)
+    {
+        // Read searchable fields from config (single source of truth)
+        $fields = config('identity.user.searchable_fields', ['name', 'email', 'phone']);
+        
+        return $query->where(function ($q) use ($term, $fields) {
+            foreach ($fields as $field) {
+                $q->orWhere($field, 'like', "%{$term}%");
+            }
+        });
+    }
+
+    /**
+     * Scope: Only suspended users
+     */
+    public function scopeSuspended($query)
+    {
+        return $query->where('status', UserStatus::SUSPENDED);
+    }
+
+    /**
+     * Scope: Only pending users
+     */
+    public function scopePending($query)
+    {
+        return $query->where('status', UserStatus::PENDING);
     }
 
     public function getMetadata(string $key, $default = null)
@@ -96,20 +124,12 @@ class User extends Authenticatable implements HasAvatar
         $this->update(['metadata' => $metadata]);
     }
 
-    public function getAvatarUrl(): ?string
+    protected function password(): Attribute
     {
-        return $this->avatar; // or return asset('storage/' . $this->avatar);
-    }
-
-    public function setAvatar(string $path): void
-    {
-        $this->avatar = $path;
-        $this->save();
-    }
-
-    public function removeAvatar(): void
-    {
-        $this->avatar = null;
-        $this->save();
+        return Attribute::make(
+            set: fn (?string $value) => $value && !str_starts_with($value, '$2y$') 
+                ? bcrypt($value) 
+                : $value,
+        );
     }
 }

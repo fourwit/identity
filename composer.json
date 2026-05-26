@@ -37,13 +37,13 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Modules\\Identity\\Tests\\": "tests/"
+            "Modules\\Identity\\Tests\\": "Tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Modules\\Identity\\Providers\\UserServiceProvider"
+                "Modules\\Identity\\Providers\\IdentityServiceProvider"
             ]
         }
     },

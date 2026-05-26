@@ -14,6 +14,7 @@ class UserData
         public ?string $phone = null,
         public ?string $username = null,
         public ?string $status = null,
+        public ?string $password = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -26,6 +27,7 @@ class UserData
             phone: $request->has('phone') ? $request->phone : null,
             username: $request->has('username') ? $request->username : null,
             status: $request->has('status') ? $request->status : null, // Will be handled in Action
+            password: $request->filled('password') ? $request->password : null,
         );
     }
 
@@ -39,6 +41,7 @@ class UserData
             'phone'      => $this->phone,
             'username'   => $this->username,
             'status'     => $this->status,
+            'password'   => $this->password,
         ];
 
         return collect($map)

@@ -4,53 +4,69 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | User Module Configuration
+    | Feature Flags
     |--------------------------------------------------------------------------
-    | This file contains all configurable options for the User Module.
-    | You can change these values to customize the module behavior.
+    | Toggle features ON/OFF. Use environment variables for production.
     */
+    'features' => [
+        'uuid' => env('IDENTITY_ENABLE_UUID', false),
+        'username' => env('IDENTITY_ENABLE_USERNAME', true),
+        'web_views' => env('USER_ENABLE_WEB_VIEWS', true),
+        'api_routes' => env('USER_ENABLE_API_ROUTES', true),
+        'two_factor' => env('IDENTITY_ENABLE_TWO_FACTOR', false),
+        'login_history' => env('IDENTITY_ENABLE_LOGIN_HISTORY', true),
+        'device_management' => env('IDENTITY_ENABLE_DEVICE_MANAGEMENT', true),
+    ],
 
-    // ============================================
-    // ID & Identifier Settings
-    // ============================================
-    'enable_uuid' => false,                    // Generate UUID for users
-    'enable_username' => true,                 // Allow username field
+    /*
+    |--------------------------------------------------------------------------
+    | User Requirements & Defaults
+    |--------------------------------------------------------------------------
+    */
+    'user' => [
+        'require_email' => env('IDENTITY_REQUIRE_EMAIL', true),
+        'require_phone' => env('IDENTITY_REQUIRE_PHONE', false),
+        'require_username' => env('IDENTITY_REQUIRE_USERNAME', false),
+        'allow_phone_only_accounts' => env('IDENTITY_ALLOW_PHONE_ONLY', false),
+        'default_status' => env('IDENTITY_DEFAULT_STATUS', 'active'),
+        'per_page' => env('IDENTITY_PER_PAGE', 5),
+        'searchable_fields' => ['name', 'email', 'phone', 'username'],
+    ],
 
-    // 'enable_web_views'  => true,     // Enable Blade views + Admin routes
-    // 'enable_api_routes' => true,     // Enable API routes
+    /*
+    |--------------------------------------------------------------------------
+    | Avatar Settings
+    |--------------------------------------------------------------------------
+    */
+    'avatar' => [
+        'disk' => env('IDENTITY_AVATAR_DISK', 'public'),
+        'max_size_kb' => env('IDENTITY_AVATAR_MAX_SIZE_KB', 2048),
+    ],
 
-    'enable_web_views'  => env('USER_ENABLE_WEB_VIEWS', true),
-    'enable_api_routes' => env('USER_ENABLE_API_ROUTES', true),
+    /*
+    |--------------------------------------------------------------------------
+    | Default Values
+    |--------------------------------------------------------------------------
+    */
+    'defaults' => [
+        'timezone' => env('IDENTITY_DEFAULT_TIMEZONE', 'UTC'),
+        'locale' => env('IDENTITY_DEFAULT_LOCALE', 'en'),
+    ],
 
-    // ============================================
-    // Required Fields
-    // ============================================
-    'require_email' => true,                   // Email is required during creation
-    'require_phone' => false,                  // Phone is optional
-    'require_username' => false,               // Username is required
-    'allow_phone_only_accounts' => false,      // Allow users without email
+    /*
+    |--------------------------------------------------------------------------
+    | API Settings
+    |--------------------------------------------------------------------------
+    */
+    'api' => [
+        'rate_limit' => env('IDENTITY_API_RATE_LIMIT', 60),
+    ],
 
-    // ============================================
-    // Default Values
-    // ============================================
-    'default_status' => 'active',              // Default status when creating user
-    'default_timezone' => 'UTC',
-    'default_locale' => 'en',
-
-    // ============================================
-    // Two-Factor Authentication
-    // ============================================
-    'enable_two_factor_by_default' => false,   // Enable 2FA for new users
-
-    // ============================================
-    // Avatar Settings
-    // ============================================
-    'avatar_disk' => 'public',                 // Storage disk for avatars
-    'max_avatar_size_kb' => 2048,              // Max avatar size (2MB)
-
-    // ============================================
-    // Status Options
-    // ============================================
+    /*
+    |--------------------------------------------------------------------------
+    | Status Options
+    |--------------------------------------------------------------------------
+    */
     'statuses' => [
         'active',
         'inactive',
@@ -58,17 +74,31 @@ return [
         'pending',
     ],
 
-    // ============================================
-    // Pagination & Search
-    // ============================================
-    'per_page' => 5,                          // Default pagination
-    'searchable_fields' => ['name', 'email', 'phone', 'username'],
+    /*
+    |--------------------------------------------------------------------------
+    | Branding
+    |--------------------------------------------------------------------------
+    | Customize the module branding for your project.
+    */
+    'branding' => [
+        'name' => env('IDENTITY_BRANDING_NAME', 'Fourwit'),
+        'admin_email' => env('IDENTITY_BRANDING_EMAIL', 'admin@fourwit.com'),
+    ],
 
-    // ============================================
-    // Security & Features
-    // ============================================
-    'enable_login_history' => true,            // Track user login history (future)
-    'enable_device_management' => true,        // Allow device management (future)
-    'api_rate_limit' => 60,          // Requests per minute per IP
+    /*
+    |--------------------------------------------------------------------------
+    | Route Configuration
+    |--------------------------------------------------------------------------
+    | Customize route prefixes and middleware for your project.
+    */
+    'routes' => [
+        'api_prefix' => env('IDENTITY_API_PREFIX', 'api/v1'),
+        'admin_prefix' => env('IDENTITY_ADMIN_PREFIX', 'admin'),
+        'middleware' => [
+            'web' => env('APP_ENV') === 'testing' ? ['web'] : ['web', 'auth'],
+            'api' => env('APP_ENV') === 'testing' ? ['api'] : ['api', 'auth:sanctum'],
+            'admin' => env('APP_ENV') === 'testing' ? ['web'] : ['web', 'auth'],
+        ],
+    ],
 
 ];

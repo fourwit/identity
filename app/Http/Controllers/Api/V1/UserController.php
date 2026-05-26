@@ -8,10 +8,15 @@ use Modules\Identity\DTOs\UserData;
 use Modules\Identity\Actions\CreateUserAction;
 use Modules\Identity\Actions\UpdateUserAction;
 use Modules\Identity\Actions\DeleteUserAction;
+use Modules\Identity\Contracts\UserRepositoryInterface;
 
 use Modules\Identity\Http\Requests\Api\StoreUserRequest;
 use Modules\Identity\Http\Requests\Api\UpdateUserRequest;
+
 use Modules\Identity\Transformers\UserResource;
+
+use Modules\Identity\Exceptions\ModuleException;
+
 use Illuminate\Http\Request;
 use Exception;
 
@@ -19,36 +24,25 @@ class UserController extends BaseApiController
 {
     private $source = "api";
     
+    public function __construct(
+        protected UserRepositoryInterface $repository
+    ) {}
+
     public function index(Request $request)
     {
-        $query = User::query();
+        $perPage = $request->get('per_page', config('identity.user.per_page', 15));
 
-        // Search
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
-                ->orWhere('phone', 'like', "%{$search}%");
-            });
-        }
+        $users = $this->repository->search(
+            $request->get('search'),      // search term
+            $request->get('status'),      // status filter
+            $perPage                            // per page
+        );
 
-        $perPage = $request->get('per_page', config('identity.per_page', 15));
-        $users = $query->latest()->paginate($perPage);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Users retrieved successfully',
-            'data' => UserResource::collection($users),
-            'pagination' => [
-                'current_page'   => $users->currentPage(),
-                'per_page'       => $users->perPage(),
-                'total'          => $users->total(),
-                'last_page'      => $users->lastPage(),
-                'next_page_url'  => $users->nextPageUrl(),
-                'prev_page_url'  => $users->previousPageUrl(),
-            ]
-        ]);
+        return $this->paginatedResponse(
+            UserResource::collection($users),
+            'Users retrieved successfully',
+            $users
+        );
     }
 
     public function store(StoreUserRequest $request, CreateUserAction $action)
@@ -65,11 +59,7 @@ class UserController extends BaseApiController
 
     public function show($id)
     {
-        $user = User::find($id);
-
-        if (!$user) {
-            return $this->notFoundResponse('User not found');
-        }
+        $user = $this->repository->findByIdOrFail($id);
 
         return $this->successResponse(
             new UserResource($user),
@@ -79,12 +69,8 @@ class UserController extends BaseApiController
 
     public function update(UpdateUserRequest $request, $id, UpdateUserAction $action)
     {
-        $user = User::find($id);
-
-        if (!$user) {
-            return $this->notFoundResponse('User not found');
-        }
-
+        $user = $this->repository->findByIdOrFail($id);
+        
         $data = UserData::fromRequest($request);
         $user = $action->execute($user, $data, 'api');
 
@@ -96,11 +82,7 @@ class UserController extends BaseApiController
 
     public function destroy($id, DeleteUserAction $action)
     {
-        $user = User::find($id);
-
-        if (!$user) {
-            return $this->notFoundResponse('User not found');
-        }
+        $user = $this->repository->findByIdOrFail($id);
 
         $action->execute($user, 'api');
 

@@ -93,15 +93,17 @@ class UserWebTest extends TestCase
     }
 
     /** @test */
-    public function test_that_can_filter_by_status()
+    public function test_that_can_filter_users_by_status()
     {
-        User::factory()->create(['status' => 'active']);
-        User::factory()->create(['status' => 'inactive']);
+
+        User::factory()->create(['status' => 'active', 'name' => 'Active User']);
+        User::factory()->create(['status' => 'inactive', 'name' => 'Inactive User']);
 
         $response = $this->get('/admin/users?status=active');
-
         $response->assertStatus(200);
-        $response->assertSee('active');
+        
+        $response->assertSee('Active User');
+        $response->assertDontSee('Inactive User');
     }
 
     /** @test */
@@ -150,7 +152,7 @@ class UserWebTest extends TestCase
     /** @test */
     public function test_that_uuid_is_generated_when_enabled_in_web()
     {
-        config(['identity.enable_uuid' => true]);
+        config(['identity.features.uuid' => true]);
 
         $user = User::factory()->create();
 
@@ -160,7 +162,7 @@ class UserWebTest extends TestCase
     /** @test */
     public function test_that_uuid_is_not_generated_when_disabled_in_web()
     {
-        config(['identity.enable_uuid' => false]);
+        config(['identity.features.uuid' => false]);
 
         $user = User::factory()->create();
 
@@ -170,7 +172,7 @@ class UserWebTest extends TestCase
     /** @test */
     public function test_that_username_appears_in_create_form_when_enabled()
     {
-        config(['identity.enable_username' => true]);
+        config(['identity.features.username' => true]);
 
         $response = $this->get('/admin/users/create');
 
@@ -181,7 +183,7 @@ class UserWebTest extends TestCase
     /** @test */
     public function test_that_username_appears_in_edit_form_when_enabled()
     {
-        config(['identity.enable_username' => true]);
+        config(['identity.features.username' => true]);
 
         $user = User::factory()->create(['username' => 'johndoe']);
 
@@ -194,7 +196,7 @@ class UserWebTest extends TestCase
     /** @test */
     public function test_that_username_does_not_appear_when_disabled_in_web()
     {
-        config(['identity.enable_username' => false]);
+        config(['identity.features.username' => false]);
 
         $response = $this->get('/admin/users/create');
 
@@ -202,4 +204,41 @@ class UserWebTest extends TestCase
         $response->assertDontSee('username'); // Field should NOT be visible
     }
 
+
+    // Exceptions Testing
+    
+    /** @test */
+    public function test_that_returns_404_when_user_not_found_web()
+    {
+        $response = $this->get('/admin/users/99999/edit');
+
+        $response->assertStatus(404);
+    }
+
+    /** @test */
+    public function test_that_cannot_delete_main_admin_user_web()
+    {
+        $admin = User::factory()->create(['id' => 1, 'name' => 'Super Admin', 'status' => 'active']);
+
+        $response = $this->delete('/admin/users/1');
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error', 'Cannot delete the main admin user');
+    }
+
+    /** @test */
+    public function test_that_cannot_create_duplicate_email_web()
+    {
+        User::factory()->create(['email' => 'test@example.com']);
+
+        $response = $this->post('/admin/users', [
+            'name' => 'Test User',
+            'first_name' => 'Test',
+            'email' => 'test@example.com',
+            'status' => 'active'
+        ]);
+
+        $response->assertRedirect();  // Redirects back to form
+        $response->assertSessionHasErrors(['email']);  // Validation error in session
+    }
 }

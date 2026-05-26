@@ -10,34 +10,34 @@ use Modules\Identity\Actions\CreateUserAction;
 use Modules\Identity\Actions\UpdateUserAction;
 use Modules\Identity\Actions\DeleteUserAction;
 
+
+use Modules\Identity\Contracts\UserRepositoryInterface;
 use Modules\Identity\Http\Requests\Admin\StoreUserRequest;
 use Modules\Identity\Http\Requests\Admin\UpdateUserRequest;
+
+use Modules\Identity\Exceptions\ModuleException;
+use Modules\Identity\Exceptions\UserNotFoundException;
+
 use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
     private $source = "web";
+
+    public function __construct(
+        protected UserRepositoryInterface $repository
+    ) {}
+
     public function index(Request $request)
     {
-        $query = User::query();
+        $perPage = $request->get('per_page', config('identity.user.per_page', 15));
 
-        // Search
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
-            });
-        }
-
-        // Status Filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $users = $query->latest()->paginate(15);
-
+        $users = $this->repository->search(
+            $request->get('search'),      // search term
+            $request->get('status'),      // status filter
+            $perPage                            // per page
+        );
+        // dd($users->toArray()); // ← TEMPORARY: Check what users are returned
         return view('identity::admin.index', compact('users'));
     }
 
