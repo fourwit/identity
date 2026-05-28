@@ -41,8 +41,10 @@ jobs:
       - name: Link local package into host app
         run: |
           cd ci-host-app
+          composer config --global --no-plugins allow-plugins.wikimedia/composer-merge-plugin true
           composer config repositories.local path ..
           composer config --no-plugins allow-plugins.wikimedia/composer-merge-plugin true
+          composer config --list | grep allow-plugins -n || true
           composer require fourwit/identity:@dev --no-interaction -W
           composer show fourwit/identity
 
