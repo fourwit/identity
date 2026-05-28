@@ -4,12 +4,15 @@ on:
   push:
   pull_request:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   php-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -21,15 +24,26 @@ jobs:
       - name: Validate package composer.json
         run: composer validate --strict
 
+      - name: Show environment info
+        run: |
+          php -v
+          composer --version
+          pwd
+          ls -la
+
       - name: Create temporary Laravel host app
         run: |
           composer create-project laravel/laravel ci-host-app --no-interaction
+          cd ci-host-app
+          php -v
+          ls -la
 
       - name: Link local package into host app
         run: |
           cd ci-host-app
           composer config repositories.local path ..
-          composer require fourwit/identity:@dev --no-interaction
+          composer require fourwit/identity:@dev --no-interaction -W
+          composer show fourwit/identity
 
       - name: Prepare test environment
         run: |
@@ -38,10 +52,11 @@ jobs:
           php artisan key:generate
           php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
           sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
-          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=database\\/database.sqlite/' .env
+          sed -i 's|^DB_DATABASE=.*|DB_DATABASE=database/database.sqlite|' .env
           php artisan migrate --force
+          php artisan about
 
       - name: Run module tests
         run: |
           cd ci-host-app
-          php artisan test ../Tests
+          php artisan test ../Tests --stop-on-failure
