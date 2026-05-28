@@ -42,6 +42,7 @@ jobs:
         run: |
           cd ci-host-app
           composer config repositories.local path ..
+          composer config --no-plugins allow-plugins.wikimedia/composer-merge-plugin true
           composer require fourwit/identity:@dev --no-interaction -W
           composer show fourwit/identity
 
