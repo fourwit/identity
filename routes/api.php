@@ -7,11 +7,11 @@ use Modules\Identity\Http\Controllers\Account\ProfileController;
 use Modules\Identity\Http\Controllers\Account\PasswordController;
 use Modules\Identity\Http\Controllers\Account\VerificationController;
 use Modules\Identity\Transformers\UserResource;
-use Modules\Identity\Models\User;
 
 $rateLimit = config('identity.api.rate_limit', 60);
 
-$apiMiddleware = config('identity.routes.middleware.api', ['api', 'auth:sanctum']);
+$apiGuard = config('identity.auth.guards.api', 'sanctum');
+$apiMiddleware = config('identity.routes.middleware.api', ['api', "auth:{$apiGuard}"]);
 
 Route::middleware(array_merge($apiMiddleware, ['throttle:' . $rateLimit . ',1']))
 ->group(function () {

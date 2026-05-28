@@ -4,8 +4,8 @@ namespace Modules\Identity\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Modules\Identity\Models\ActivityLog;
-use Modules\Identity\Models\User;
 use Illuminate\Http\Request;
+use Modules\Identity\Support\IdentityConfig;
 
 class ActivityLogController extends Controller
 {
@@ -40,7 +40,8 @@ class ActivityLogController extends Controller
         $logs = $query->paginate(25);
 
         // Get all users for filter dropdown
-        $users = User::orderBy('name')->get();
+        $userModelClass = IdentityConfig::userModelClass();
+        $users = $userModelClass::query()->orderBy('name')->get();
 
         return view('identity::admin.activity-logs.index', compact('logs', 'users'));
     }

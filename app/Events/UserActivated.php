@@ -4,15 +4,15 @@ namespace Modules\Identity\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Modules\Identity\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 class UserActivated
 {
     use Dispatchable, SerializesModels;
 
-    public User $user;
+    public Model $user;
 
-    public function __construct(User $user)
+    public function __construct(Model $user)
     {
         $this->user = $user;
     }

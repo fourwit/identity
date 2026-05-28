@@ -2,7 +2,6 @@
 
 namespace Modules\Identity\Actions;
 
-use Modules\Identity\Models\User;
 use Modules\Identity\Enums\UserStatus;
 use Modules\Identity\Events\UserDeleted;
 use Modules\Identity\Events\UserSuspended;
@@ -12,6 +11,7 @@ use Modules\Identity\Contracts\UserRepositoryInterface;
 
 use Modules\Identity\Exceptions\UserNotFoundException;
 use Modules\Identity\Exceptions\CannotDeleteUserException;
+use Illuminate\Database\Eloquent\Model;
 
 class DeleteUserAction
 {
@@ -19,7 +19,7 @@ class DeleteUserAction
         protected UserRepositoryInterface $repository
     ) {}
 
-    public function execute(User $user, string $source = 'web'): void
+    public function execute(Model $user, string $source = 'web'): void
     {
         $userId = $user->id;
         $userName = $user->name;

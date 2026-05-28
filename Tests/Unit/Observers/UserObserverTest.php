@@ -9,15 +9,18 @@ use Modules\Identity\Events\UserSuspended;
 
 use Illuminate\Support\Facades\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Identity\Support\BootstrapsIdentitySchema;
 
 
 class UserObserverTest extends TestCase
 {
     use RefreshDatabase;
+    use BootstrapsIdentitySchema;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->bootstrapIdentitySchemaForTests();
 
         User::observe(UserObserver::class);
 

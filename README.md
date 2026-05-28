@@ -133,6 +133,14 @@ Strict module boundaries are critical to preventing "Big Ball of Mud" architectu
 - `email_verified_at` / `phone_verified_at` (Timestamp)
 - `deleted_at` (Timestamp) - Soft deletes implemented to preserve audit logs.
 
+### `identity_profiles` table (Shared Mode)
+- `user_id` (FK to configurable users table) - Links host app user to identity profile data.
+- `first_name`, `last_name`, `username`, `phone`
+- `status`, `timezone`, `locale`
+- `avatar_id`, `two_factor_enabled`, `two_factor_secret`, `metadata`
+
+When `IDENTITY_MODE=shared`, module-specific user fields are stored in this table while core account fields stay in the host app `users` table.
+
 ### `activity_logs` table
 Tracks all mutations within the module.
 - `user_id` (BigInt) - The user who was modified.
@@ -235,12 +243,85 @@ When the future Notifications module is built, it will simply register a Listene
 
 The module's behavior is heavily configurable via `config/identity.php`.
 
+### User Ownership Modes
+- `IDENTITY_MODE=shared`: Reuse host app user model/table. Module skips its own `create_users_table` migration.
+- `IDENTITY_MODE=owned`: Module owns and manages full `users` schema.
+
+### Model & Table Mapping
+- `IDENTITY_USER_MODEL` (default `Modules\Identity\Models\User`)
+- `IDENTITY_USERS_TABLE` (default `users`)
+- `IDENTITY_PROFILES_TABLE` (default `identity_profiles`)
+- `IDENTITY_ACTIVITY_LOGS_TABLE` (default `activity_logs`)
+
+### Auth Guard / Provider Compatibility
+- `IDENTITY_AUTH_GUARD_WEB` (default `web`)
+- `IDENTITY_AUTH_GUARD_API` (default `sanctum`)
+- `IDENTITY_AUTH_GUARD_ADMIN` (default `web`)
+- `IDENTITY_AUTH_PROVIDER_USERS` (default `users`)
+
+These values are wired into route middleware defaults so host apps are not forced to use a specific guard setup.
+
+In `shared` mode, repository writes are split automatically:
+- Core fields (`name`, `email`, `password`) -> host `users` table
+- Identity-specific fields (`first_name`, `last_name`, `username`, `phone`, `status`, etc.) -> `identity_profiles`
+
 Key Toggles:
 - `features.uuid` (bool): Enable/disable UUID generation.
 - `features.username` (bool): Enable/disable username handling in UI and validation.
 - `routes.middleware.web`: Dynamically arrays middleware. Defaults to `['web', 'auth']` in production, but cleverly bypasses `auth` during testing if configured.
 - `api.rate_limit`: Defaults to 60 hits per minute on Identity endpoints.
 - `branding.name`: Used dynamically across Blade views.
+
+### Host Compatibility Check
+Run:
+```bash
+php artisan identity:doctor
+```
+In `shared` mode this checks host users table compatibility (`id`, `name`, `email`, `password`) and prints actionable hints when columns are missing.
+
+### Quick Setup: Existing Project (Shared Mode)
+```env
+IDENTITY_MODE=shared
+IDENTITY_USER_MODEL=App\Models\User
+IDENTITY_USERS_TABLE=users
+IDENTITY_PROFILES_TABLE=identity_profiles
+```
+Then run:
+```bash
+php artisan migrate
+php artisan identity:doctor
+```
+
+### Quick Setup: New Project (Owned Mode)
+```env
+IDENTITY_MODE=owned
+IDENTITY_USER_MODEL=Modules\Identity\Models\User
+IDENTITY_USERS_TABLE=users
+```
+Then run:
+```bash
+php artisan migrate
+```
+
+### Shared Mode Notes
+- Core fields (`name`, `email`, `password`) remain on host users table.
+- Identity-specific fields (`first_name`, `last_name`, `username`, `phone`, `status`, etc.) are stored in `identity_profiles`.
+- In shared mode, unique checks for `username` and `phone` are performed against `identity_profiles`.
+
+### Troubleshooting
+- `Target class [modules] does not exist`:
+  Use latest provider code that avoids early `module_path()` calls during package discovery.
+- `identity:doctor` DB connection failure:
+  Check `.env` DB host/port/user/pass and ensure database server is running.
+- UUID lookups return null in shared mode:
+  Ensure host users table has a `uuid` column, or disable UUID-dependent flows.
+
+### Migration Notes (Shared vs Owned)
+- Upgrading existing host apps to `shared` mode:
+  keep host `users` as source of truth for core identity (`name`, `email`, `password`), then run module migrations to create `identity_profiles`.
+- `shared` mode does not run module `create_users_table` migration.
+- `owned` mode runs full module migrations including `create_users_table`.
+- If moving from owned to shared, migrate module-only fields (`first_name`, `last_name`, `username`, `phone`, `status`, etc.) into `identity_profiles` before switch.
 
 ---
 
@@ -253,11 +334,18 @@ The module maintains FAANG-grade testing standards.
 - `Tests/Feature/`: HTTP integration tests verifying Web and API routing, Validation failures, and IDOR protection in the Account endpoints.
 
 **Execution:**
-Run all tests specific to the module:
+Run tests from the host Laravel app root (where this package is installed/linked):
 ```bash
-php vendor/bin/phpunit Modules/Identity/Tests --testdox
+php artisan test /absolute/path/to/fourwit-packages/fourwit-identity/Tests
 ```
-*(As of writing, the suite contains 68 tests and 167 assertions, all passing).*
+Example:
+```bash
+cd /var/www/html/lm-test
+php artisan test /var/www/html/fourwit-packages/fourwit-identity/Tests
+```
+Current suite status:
+- `67` tests
+- `149` assertions
 
 ---
 

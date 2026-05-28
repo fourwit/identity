@@ -3,7 +3,6 @@
 namespace Modules\Identity\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Modules\Identity\Models\User;
 use Modules\Identity\DTOs\UserData;
 use Modules\Identity\Actions\CreateUserAction;
 use Modules\Identity\Actions\UpdateUserAction;
@@ -19,6 +18,7 @@ use Modules\Identity\Exceptions\ModuleException;
 
 use Illuminate\Http\Request;
 use Exception;
+use Illuminate\Database\Eloquent\Model;
 
 class UserController extends BaseApiController
 {
@@ -59,7 +59,7 @@ class UserController extends BaseApiController
 
     public function show($id)
     {
-        $user = $this->repository->findByIdOrFail($id);
+        $user = $id instanceof Model ? $id : $this->repository->findByIdOrFail((int) $id);
 
         return $this->successResponse(
             new UserResource($user),
@@ -69,7 +69,7 @@ class UserController extends BaseApiController
 
     public function update(UpdateUserRequest $request, $id, UpdateUserAction $action)
     {
-        $user = $this->repository->findByIdOrFail($id);
+        $user = $id instanceof Model ? $id : $this->repository->findByIdOrFail((int) $id);
         
         $data = UserData::fromRequest($request);
         $user = $action->execute($user, $data, 'api');
@@ -82,7 +82,7 @@ class UserController extends BaseApiController
 
     public function destroy($id, DeleteUserAction $action)
     {
-        $user = $this->repository->findByIdOrFail($id);
+        $user = $id instanceof Model ? $id : $this->repository->findByIdOrFail((int) $id);
 
         $action->execute($user, 'api');
 

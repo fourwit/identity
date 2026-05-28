@@ -2,25 +2,25 @@
 
 namespace Modules\Identity\Contracts;
 
-use Modules\Identity\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Model;
 
 interface UserRepositoryInterface
 {
     public function getAll(?int $perPage = null): LengthAwarePaginator|Collection;
 
-    public function findById(int $id): ?User;
+    public function findById(int $id): ?Model;
 
-    public function findByEmail(string $email): ?User;
+    public function findByEmail(string $email): ?Model;
 
-    public function findByUuid(string $uuid): ?User;
+    public function findByUuid(string $uuid): ?Model;
 
-    public function create(array $data): User;
+    public function create(array $data): Model;
 
-    public function update(User $user, array $data): bool;
+    public function update(Model $user, array $data): bool;
 
-    public function delete(User $user): bool;
+    public function delete(Model $user): bool;
 
     public function search(string $term, ?string $status = null, ?int $perPage = null): LengthAwarePaginator|Collection;
 }

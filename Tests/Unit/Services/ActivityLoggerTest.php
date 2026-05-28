@@ -8,10 +8,18 @@ use Modules\Identity\Models\User;
 use Modules\Identity\Models\ActivityLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Identity\Support\BootstrapsIdentitySchema;
 
 class ActivityLoggerTest extends TestCase
 {
     use RefreshDatabase;
+    use BootstrapsIdentitySchema;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->bootstrapIdentitySchemaForTests();
+    }
 
     /** @test */
     public function test_logs_activity_successfully()

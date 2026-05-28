@@ -11,16 +11,19 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Identity\Events\UserDeleted;
 use Modules\Identity\Events\UserSuspended;
 use Modules\Identity\Exceptions\CannotDeleteUserException;
+use Modules\Identity\Support\BootstrapsIdentitySchema;
 
 class DeleteUserActionTest extends TestCase
 {
     use RefreshDatabase;
+    use BootstrapsIdentitySchema;
 
     protected DeleteUserAction $action;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->bootstrapIdentitySchemaForTests();
         
         Event::fake([
             UserDeleted::class,

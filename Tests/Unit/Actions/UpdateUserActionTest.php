@@ -9,16 +9,19 @@ use Modules\Identity\Models\User;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Identity\Events\UserUpdated;
+use Modules\Identity\Support\BootstrapsIdentitySchema;
 
 class UpdateUserActionTest extends TestCase
 {
     use RefreshDatabase;
+    use BootstrapsIdentitySchema;
 
     protected UpdateUserAction $action;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->bootstrapIdentitySchemaForTests();
         
         Event::fake([
             UserUpdated::class,

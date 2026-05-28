@@ -1,0 +1,47 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  php-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, sqlite, pdo_sqlite, json, fileinfo
+          coverage: none
+
+      - name: Validate package composer.json
+        run: composer validate --strict
+
+      - name: Create temporary Laravel host app
+        run: |
+          composer create-project laravel/laravel ci-host-app --no-interaction
+
+      - name: Link local package into host app
+        run: |
+          cd ci-host-app
+          composer config repositories.local path ..
+          composer require fourwit/identity:@dev --no-interaction
+
+      - name: Prepare test environment
+        run: |
+          cd ci-host-app
+          cp .env.example .env
+          php artisan key:generate
+          php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
+          sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=database\\/database.sqlite/' .env
+          php artisan migrate --force
+
+      - name: Run module tests
+        run: |
+          cd ci-host-app
+          php artisan test ../Tests

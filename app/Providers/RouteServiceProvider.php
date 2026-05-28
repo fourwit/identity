@@ -4,10 +4,12 @@ namespace Modules\Identity\Providers;
 
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Route;
+use Modules\Identity\Support\IdentityConfig;
 
 class RouteServiceProvider extends ServiceProvider
 {
     protected string $name = 'Identity';
+    protected string $moduleBasePath;
 
     /**
      * Called before routes are registered.
@@ -16,6 +18,8 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->moduleBasePath = dirname(__DIR__, 2);
+        Route::model('user', IdentityConfig::userModelClass());
         parent::boot();
     }
 
@@ -39,7 +43,7 @@ class RouteServiceProvider extends ServiceProvider
             return; // Web routes disabled
         }
 
-        Route::group([], module_path($this->name, '/routes/web.php'));
+        Route::group([], $this->moduleBasePath.'/routes/web.php');
         
     }
 
@@ -55,7 +59,7 @@ class RouteServiceProvider extends ServiceProvider
         }
         
         Route::prefix(config('identity.routes.api_prefix', 'api/v1'))
-           ->group(module_path($this->name, '/routes/api.php'));
+           ->group($this->moduleBasePath.'/routes/api.php');
         
     }
 }

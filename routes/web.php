@@ -7,7 +7,10 @@ use Modules\Identity\Http\Controllers\Account\PasswordController;
 use Modules\Identity\Http\Controllers\Account\VerificationController;
 use Modules\Identity\Http\Controllers\Admin\ActivityLogController;
 
-Route::middleware(config('identity.routes.middleware.admin', ['web', 'auth']))
+$adminGuard = config('identity.auth.guards.admin', 'web');
+$webGuard = config('identity.auth.guards.web', 'web');
+
+Route::middleware(config('identity.routes.middleware.admin', ['web', "auth:{$adminGuard}"]))
     ->prefix(config('identity.routes.admin_prefix', 'admin'))
     ->group(function () {
     Route::resource('users', UserController::class)->names('admin.users');
@@ -18,7 +21,7 @@ Route::middleware(config('identity.routes.middleware.admin', ['web', 'auth']))
 
 
 // Self-service account routes
-Route::middleware(config('identity.routes.middleware.web', ['web', 'auth']))
+Route::middleware(config('identity.routes.middleware.web', ['web', "auth:{$webGuard}"]))
 ->prefix('account')
 ->name('identity.account.')
 ->group(function () {

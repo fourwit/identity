@@ -5,20 +5,93 @@ namespace Modules\Identity\Tests\Unit\Repositories;
 use Tests\TestCase;
 use Modules\Identity\Repositories\UserRepository;
 use Modules\Identity\Models\User;
+use Modules\Identity\Models\IdentityProfile;
 use Modules\Identity\Enums\UserStatus;
+use Modules\Identity\Support\BootstrapsIdentitySchema;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class UserRepositoryTest extends TestCase
 {
     use RefreshDatabase;
+    use BootstrapsIdentitySchema;
 
     protected UserRepository $repository;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->bootstrapIdentitySchemaForTests();
+
         $this->repository = new UserRepository();
+    }
+
+    /** @test */
+    public function test_shared_mode_create_splits_core_and_profile_fields()
+    {
+        config([
+            'identity.mode' => 'shared',
+            'identity.models.user' => User::class,
+            'identity.tables.users' => 'users',
+            'identity.tables.profiles' => 'identity_profiles',
+        ]);
+
+        $created = $this->repository->create([
+            'name' => 'Shared User',
+            'email' => 'shared@example.com',
+            'password' => 'secret1234',
+            'first_name' => 'Shared',
+            'last_name' => 'Mode',
+            'phone' => '9999999999',
+            'username' => 'shared_user',
+            'status' => 'active',
+        ]);
+
+        $this->assertDatabaseHas('users', ['id' => $created->id, 'email' => 'shared@example.com']);
+        $this->assertDatabaseHas('identity_profiles', ['user_id' => $created->id, 'username' => 'shared_user']);
+    }
+
+    /** @test */
+    public function test_find_by_uuid_returns_null_when_uuid_column_missing()
+    {
+        config([
+            'identity.mode' => 'shared',
+            'identity.models.user' => IdentityProfile::class,
+            'identity.tables.users' => 'identity_profiles',
+        ]);
+
+        $this->assertNull($this->repository->findByUuid('any-uuid'));
+    }
+
+    /** @test */
+    public function test_shared_mode_search_filters_by_status_from_identity_profiles()
+    {
+        config([
+            'identity.mode' => 'shared',
+            'identity.models.user' => User::class,
+            'identity.tables.users' => 'users',
+            'identity.tables.profiles' => 'identity_profiles',
+        ]);
+
+        $active = $this->repository->create([
+            'name' => 'Active Shared',
+            'email' => 'active-shared@example.com',
+            'password' => 'secret1234',
+            'status' => 'active',
+        ]);
+
+        $inactive = $this->repository->create([
+            'name' => 'Inactive Shared',
+            'email' => 'inactive-shared@example.com',
+            'password' => 'secret1234',
+            'status' => 'inactive',
+        ]);
+
+        $results = $this->repository->search(null, 'active');
+
+        $this->assertCount(1, $results);
+        $this->assertEquals($active->id, $results->first()->id);
+        $this->assertNotEquals($inactive->id, $results->first()->id);
     }
 
     /** @test */

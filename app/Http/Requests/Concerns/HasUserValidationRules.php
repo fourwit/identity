@@ -3,6 +3,7 @@
 namespace Modules\Identity\Http\Requests\Concerns;
 
 use Modules\Identity\Enums\UserStatus;
+use Modules\Identity\Support\IdentityConfig;
 
 trait HasUserValidationRules
 {
@@ -21,18 +22,22 @@ trait HasUserValidationRules
         $requireEmail = config('identity.user.require_email');
         $requirePhone = config('identity.user.require_phone');
         $requireUsername = config('identity.user.require_username');
+        $usersTable = IdentityConfig::usersTable();
+        $profilesTable = config('identity.tables.profiles', 'identity_profiles');
+        $phoneUniqueTable = IdentityConfig::isOwnedMode() ? $usersTable : $profilesTable;
+        $usernameUniqueTable = IdentityConfig::isOwnedMode() ? $usersTable : $profilesTable;
 
         $emailRule = $isUpdate 
-            ? ($requireEmail ? "{$prefix}required|email|unique:users,email,{$userId}" : "nullable|email|unique:users,email,{$userId}")
-            : ($requireEmail ? 'required|email|unique:users,email' : 'nullable|email|unique:users,email');
+            ? ($requireEmail ? "{$prefix}required|email|unique:{$usersTable},email,{$userId}" : "nullable|email|unique:{$usersTable},email,{$userId}")
+            : ($requireEmail ? "required|email|unique:{$usersTable},email" : "nullable|email|unique:{$usersTable},email");
 
         $phoneRule = $isUpdate 
-            ? ($requirePhone ? "{$prefix}required|string|unique:users,phone,{$userId}" : "nullable|string|unique:users,phone,{$userId}")
-            : ($requirePhone ? 'required|string|unique:users,phone' : 'nullable|string|unique:users,phone');
+            ? ($requirePhone ? "{$prefix}required|string|unique:{$phoneUniqueTable},phone,{$userId},user_id" : "nullable|string|unique:{$phoneUniqueTable},phone,{$userId},user_id")
+            : ($requirePhone ? "required|string|unique:{$phoneUniqueTable},phone" : "nullable|string|unique:{$phoneUniqueTable},phone");
 
         $usernameRule = $isUpdate 
-            ? ($requireUsername ? "{$prefix}required|string|unique:users,username,{$userId}" : "nullable|string|unique:users,username,{$userId}")
-            : ($requireUsername ? 'required|string|unique:users,username' : 'nullable|string|unique:users,username');
+            ? ($requireUsername ? "{$prefix}required|string|unique:{$usernameUniqueTable},username,{$userId},user_id" : "nullable|string|unique:{$usernameUniqueTable},username,{$userId},user_id")
+            : ($requireUsername ? "required|string|unique:{$usernameUniqueTable},username" : "nullable|string|unique:{$usernameUniqueTable},username");
 
         $passwordRule = $isUpdate 
             ? 'sometimes|nullable|string|min:8' 

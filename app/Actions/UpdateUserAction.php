@@ -3,12 +3,12 @@
 namespace Modules\Identity\Actions;
 
 use Modules\Identity\DTOs\UserData;
-use Modules\Identity\Models\User;
 use Modules\Identity\Enums\UserStatus;
 use Modules\Identity\Events\UserUpdated;
 use Modules\Identity\Services\ActivityLogger;
 use Modules\Identity\Contracts\UserRepositoryInterface;
 use Modules\Identity\Exceptions\UserNotFoundException;
+use Illuminate\Database\Eloquent\Model;
 
 
 class UpdateUserAction
@@ -17,7 +17,7 @@ class UpdateUserAction
         protected UserRepositoryInterface $repository
     ) {}
 
-    public function execute(User $user, UserData $data, string $source = 'web'): User
+    public function execute(Model $user, UserData $data, string $source = 'web'): Model
     {
         $oldData = $user->only(['name', 'email', 'status']);
 

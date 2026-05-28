@@ -3,7 +3,7 @@
 namespace Modules\Identity\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Modules\Identity\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 use Modules\Identity\DTOs\UserData;
 use Modules\Identity\Actions\CreateUserAction;
@@ -57,12 +57,12 @@ class UserController extends Controller
             ->with('success', 'User created successfully.');
     }
 
-    public function edit(User $user)
+    public function edit(Model $user)
     {
         return view('identity::admin.edit', compact('user'));
     }
 
-    public function update(UpdateUserRequest $request, User $user, UpdateUserAction $action)
+    public function update(UpdateUserRequest $request, Model $user, UpdateUserAction $action)
     {
         $data = UserData::fromRequest($request);
         $action->execute($user, $data, 'web');
@@ -72,7 +72,7 @@ class UserController extends Controller
             ->with('success', 'User updated successfully.');
     }
 
-    public function destroy(User $user, DeleteUserAction $action)
+    public function destroy(Model $user, DeleteUserAction $action)
     {
         $action->execute($user, 'web');
 

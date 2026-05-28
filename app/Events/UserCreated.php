@@ -9,17 +9,17 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Modules\Identity\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 class UserCreated
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
-    public User $user;
+    public Model $user;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(User $user)
+    public function __construct(Model $user)
     {
         $this->user = $user;
     }

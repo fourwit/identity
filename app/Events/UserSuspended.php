@@ -4,16 +4,16 @@ namespace Modules\Identity\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Modules\Identity\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 class UserSuspended
 {
     use Dispatchable, SerializesModels;
 
-    public User $user;
+    public Model $user;
     public ?string $reason;
 
-    public function __construct(User $user, ?string $reason = null)
+    public function __construct(Model $user, ?string $reason = null)
     {
         $this->user = $user;
         $this->reason = $reason;

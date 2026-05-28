@@ -2,18 +2,18 @@
 
 namespace Modules\Identity\Observers;
 
-use Modules\Identity\Models\User;
 use Modules\Identity\Enums\UserStatus;
 use Modules\Identity\Events\UserSuspended;
 use Modules\Identity\Events\UserActivated;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Model;
 
 class UserObserver
 {
     /**
      * Handle the User "creating" event.
      */
-    public function creating(User $user): void
+    public function creating(Model $user): void
     {
         // Auto-generate UUID if enabled in config
         if (config('identity.features.uuid', false) && empty($user->uuid)) {
@@ -47,7 +47,7 @@ class UserObserver
     /**
      * Handle the User "updating" event.
      */
-    public function updating(User $user): void
+    public function updating(Model $user): void
     {
         // Lowercase email if changed
         if ($user->isDirty('email') && !empty($user->email)) {

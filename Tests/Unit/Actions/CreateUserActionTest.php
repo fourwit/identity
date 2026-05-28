@@ -10,16 +10,19 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Identity\Observers\UserObserver;
 use Modules\Identity\Events\UserCreated;
+use Modules\Identity\Support\BootstrapsIdentitySchema;
 
 class CreateUserActionTest extends TestCase
 {
     use RefreshDatabase;
+    use BootstrapsIdentitySchema;
 
     protected CreateUserAction $action;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->bootstrapIdentitySchemaForTests();
         
          // Only fake domain events — lets Eloquent lifecycle events fire normally
         Event::fake([
@@ -45,7 +48,8 @@ class CreateUserActionTest extends TestCase
             email: 'john@example.com',
             phone: '1234567890',
             username: 'johndoe',
-            status: 'active'
+            status: 'active',
+            password: 'secret1234'
         );
 
         $user = $this->action->execute($data, 'web');
@@ -69,7 +73,8 @@ class CreateUserActionTest extends TestCase
             email: 'jane@example.com',
             phone: null,
             username: null,
-            status: null  // No status provided
+            status: null,  // No status provided
+            password: 'secret1234'
         );
 
 
@@ -88,7 +93,8 @@ class CreateUserActionTest extends TestCase
             email: 'test@example.com',
             phone: null,
             username: null,
-            status: 'active'
+            status: 'active',
+            password: 'secret1234'
         );
 
         $this->action->execute($data, 'api');

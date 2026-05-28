@@ -4,9 +4,10 @@ namespace Modules\Identity\Providers;
 
 use Nwidart\Modules\Support\ModuleServiceProvider;
 use Illuminate\Support\Facades\Gate;
-use Modules\Identity\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Modules\Identity\Policies\UserPolicy;
 use Modules\Identity\Observers\UserObserver;
+use Modules\Identity\Support\IdentityConfig;
 
 class IdentityServiceProvider extends ModuleServiceProvider
 {
@@ -25,7 +26,9 @@ class IdentityServiceProvider extends ModuleServiceProvider
      *
      * @var string[]
      */
-    // protected array $commands = [];
+    protected array $commands = [
+        \Modules\Identity\Console\Commands\IdentityDoctorCommand::class,
+    ];
 
     /**
      * Provider classes to register.
@@ -52,8 +55,10 @@ class IdentityServiceProvider extends ModuleServiceProvider
      */
     public function register(): void
     {
+        $moduleBasePath = dirname(__DIR__, 2);
+
         $this->mergeConfigFrom(
-            module_path('Identity', 'config/identity.php'), 'identity'
+            $moduleBasePath.'/config/identity.php', 'identity'
         );
 
         // Bind Repository
@@ -68,6 +73,13 @@ class IdentityServiceProvider extends ModuleServiceProvider
             if ($e instanceof \Modules\Identity\Exceptions\ModuleException) {
                 return \Modules\Identity\Exceptions\ModuleExceptionHandler::handle($e, $request);
             }
+
+            if ($e instanceof ModelNotFoundException && ($request->is('api/*') || $request->expectsJson())) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found',
+                ], 404);
+            }
         });
 
         // Bind Identity Manager (for Facade)
@@ -79,24 +91,37 @@ class IdentityServiceProvider extends ModuleServiceProvider
 
         // 2. Call parent register to handle the $providers array
         parent::register();
+
+        $this->commands($this->commands);
     }
 
     public function boot(): void
     {
+        $moduleBasePath = dirname(__DIR__, 2);
+
         // Register View Namespace (Fix for "No hint path defined for [user]")
-        $this->loadViewsFrom(module_path('Identity', 'resources/views'), 'identity');
+        $this->loadViewsFrom($moduleBasePath.'/resources/views', 'identity');
 
         $this->mergeConfigFrom(
-            module_path('Identity', 'config/identity.php'), 'identity'
+            $moduleBasePath.'/config/identity.php', 'identity'
         );
+
+        foreach (glob($moduleBasePath.'/database/migrations/*.php') as $migrationFile) {
+            if (!IdentityConfig::isOwnedMode() && str_contains($migrationFile, 'create_users_table')) {
+                continue;
+            }
+
+            $this->loadMigrationsFrom($migrationFile);
+        }
         
-        // Register UserObserver
-        User::observe(UserObserver::class);
+        if (IdentityConfig::isOwnedMode()) {
+            IdentityConfig::userModelClass()::observe(UserObserver::class);
+        }
         
         // dd(User::getEventDispatcher());
 
         // Register User Policy
-        Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(IdentityConfig::userModelClass(), UserPolicy::class);
 
        
     }

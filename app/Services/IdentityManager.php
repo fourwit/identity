@@ -4,7 +4,7 @@ namespace Modules\Identity\Services;
 
 use Modules\Identity\Contracts\UserRepositoryInterface;
 use Modules\Identity\DTOs\UserData;
-use Modules\Identity\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 class IdentityManager
 {
@@ -15,7 +15,7 @@ class IdentityManager
     /**
      * Find user by ID
      */
-    public function findById(int $id): ?User
+    public function findById(int $id): ?Model
     {
         return $this->repository->findById($id);
     }
@@ -23,7 +23,7 @@ class IdentityManager
     /**
      * Find user by email
      */
-    public function findByEmail(string $email): ?User
+    public function findByEmail(string $email): ?Model
     {
         return $this->repository->findByEmail($email);
     }
@@ -31,7 +31,7 @@ class IdentityManager
     /**
      * Find user by UUID
      */
-    public function findByUuid(string $uuid): ?User
+    public function findByUuid(string $uuid): ?Model
     {
         return $this->repository->findByUuid($uuid);
     }
@@ -63,7 +63,7 @@ class IdentityManager
     /**
      * Create a new user
      */
-    public function createUser(array $data): User
+    public function createUser(array $data): Model
     {
         return $this->repository->create($data);
     }
@@ -71,7 +71,7 @@ class IdentityManager
     /**
      * Update a user
      */
-    public function updateUser(User $user, array $data): bool
+    public function updateUser(Model $user, array $data): bool
     {
         return $this->repository->update($user, $data);
     }
@@ -79,7 +79,7 @@ class IdentityManager
     /**
      * Delete a user
      */
-    public function deleteUser(User $user): bool
+    public function deleteUser(Model $user): bool
     {
         return $this->repository->delete($user);
     }

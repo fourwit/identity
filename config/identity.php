@@ -1,6 +1,17 @@
 <?php
 
 return [
+    'mode' => env('IDENTITY_MODE', 'shared'),
+
+    'tables' => [
+        'users' => env('IDENTITY_USERS_TABLE', 'users'),
+        'profiles' => env('IDENTITY_PROFILES_TABLE', 'identity_profiles'),
+        'activity_logs' => env('IDENTITY_ACTIVITY_LOGS_TABLE', 'activity_logs'),
+    ],
+
+    'models' => [
+        'user' => env('IDENTITY_USER_MODEL', Modules\Identity\Models\User::class),
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -98,6 +109,17 @@ return [
             'web' => env('APP_ENV') === 'testing' ? ['web'] : ['web', 'auth'],
             'api' => env('APP_ENV') === 'testing' ? ['api'] : ['api', 'auth:sanctum'],
             'admin' => env('APP_ENV') === 'testing' ? ['web'] : ['web', 'auth'],
+        ],
+    ],
+
+    'auth' => [
+        'guards' => [
+            'web' => env('IDENTITY_AUTH_GUARD_WEB', 'web'),
+            'api' => env('IDENTITY_AUTH_GUARD_API', 'sanctum'),
+            'admin' => env('IDENTITY_AUTH_GUARD_ADMIN', 'web'),
+        ],
+        'providers' => [
+            'users' => env('IDENTITY_AUTH_PROVIDER_USERS', 'users'),
         ],
     ],
 

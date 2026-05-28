@@ -3,7 +3,7 @@
 namespace Modules\Identity\Actions;
 
 use Modules\Identity\DTOs\UserData;
-use Modules\Identity\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Identity\Events\UserCreated;
 use Modules\Identity\Services\ActivityLogger;
 use Modules\Identity\Contracts\UserRepositoryInterface;
@@ -15,7 +15,7 @@ class CreateUserAction
         protected UserRepositoryInterface $repository
     ) {}
 
-    public function execute(UserData $data, string $source = 'web'): User
+    public function execute(UserData $data, string $source = 'web'): Model
     {
         // Check if user already exists
         if ($this->repository->findByEmail($data->email)) {

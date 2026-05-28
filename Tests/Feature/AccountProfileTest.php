@@ -5,14 +5,17 @@ namespace Modules\Identity\Tests\Feature;
 use Tests\TestCase;
 use Modules\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Identity\Support\BootstrapsIdentitySchema;
 
 class AccountProfileTest extends TestCase
 {
     use RefreshDatabase;
+    use BootstrapsIdentitySchema;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->bootstrapIdentitySchemaForTests();
         
         // Remove auth middleware for tests, but we will mock login.
         // Wait, for account profile tests, we WANT auth to work!
