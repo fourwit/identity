@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Modules\Identity\Contracts\UserRepositoryInterface;
 use Modules\Identity\Enums\UserStatus;
 use Modules\Identity\Exceptions\UserNotFoundException;
@@ -323,6 +324,13 @@ class UserRepository implements UserRepositoryInterface
 
     protected function normalizeProfileData(array $profileData): array
     {
+        if (config('identity.features.uuid', false)) {
+            $uuid = $profileData['uuid'] ?? null;
+            if (empty($uuid)) {
+                $profileData['uuid'] = Str::uuid()->toString();
+            }
+        }
+
         if (array_key_exists('status', $profileData) && $profileData['status'] instanceof UserStatus) {
             $profileData['status'] = $profileData['status']->value;
         }
