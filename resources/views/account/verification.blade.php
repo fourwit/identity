@@ -1,4 +1,4 @@
-@extends('identity::components.layouts.master')
+@extends(config('identity.views.layout'))
 
 @section('title', 'Account Verification Status')
 

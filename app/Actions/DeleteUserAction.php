@@ -2,16 +2,14 @@
 
 namespace Modules\Identity\Actions;
 
-use Modules\Identity\Enums\UserStatus;
 use Modules\Identity\Events\UserDeleted;
-use Modules\Identity\Events\UserSuspended;
 
-use Modules\Identity\Services\ActivityLogger;
 use Modules\Identity\Contracts\UserRepositoryInterface;
 
 use Modules\Identity\Exceptions\UserNotFoundException;
 use Modules\Identity\Exceptions\CannotDeleteUserException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DeleteUserAction
 {
@@ -23,27 +21,34 @@ class DeleteUserAction
     {
         $userId = $user->id;
         $userName = $user->name;
+        $normalizedName = strtolower(trim((string) $userName));
+        $userEmail = strtolower(trim((string) ($user->email ?? '')));
+        $userUuid = trim((string) ($user->uuid ?? ''));
 
-        if ($user->status === UserStatus::ACTIVE && $user->name === "Super Admin") {
-            throw new CannotDeleteUserException('Cannot delete the main admin user');
+        if (config('identity.protection.enabled', true)) {
+            $configuredUuid = trim((string) config('identity.protection.super_admin_uuid', ''));
+            $configuredEmail = strtolower(trim((string) config('identity.protection.super_admin_email', '')));
+            $configuredName = strtolower(trim((string) config('identity.protection.super_admin_name', 'super admin')));
+
+            $isProtectedUser =
+                ($configuredUuid !== '' && $userUuid !== '' && $userUuid === $configuredUuid) ||
+                ($configuredEmail !== '' && $userEmail !== '' && $userEmail === $configuredEmail) ||
+                ($configuredName !== '' && $normalizedName === $configuredName);
+
+            if ($isProtectedUser) {
+                throw new CannotDeleteUserException('Cannot delete the main admin user');
+            }
         }
 
-        // Log activity
-        ActivityLogger::log(
-            "Deleted user: {$userName}",
-            null,
-            ['deleted_user_id' => $userId, 'name' => $userName],
-            'deleted',
-            $source
-        );
+        $strategy = (string) config('identity.deletion.strategy', 'safe');
+        $usesSoftDeletes = in_array(SoftDeletes::class, class_uses_recursive($user), true);
 
-        if ($user->status === UserStatus::ACTIVE) {
-            event(new UserSuspended($user, 'Account deleted'));
+        if ($strategy === 'safe' && !$usesSoftDeletes) {
+            throw new CannotDeleteUserException('Safe deletion strategy requires SoftDeletes on the user model.');
         }
 
-        // $user->delete();
         $this->repository->delete($user);
 
-        event(new UserDeleted($userId, $userName));
+        event(new UserDeleted($userId, $userName, $source));
     }
 }

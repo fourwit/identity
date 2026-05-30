@@ -22,5 +22,5 @@ interface UserRepositoryInterface
 
     public function delete(Model $user): bool;
 
-    public function search(string $term, ?string $status = null, ?int $perPage = null): LengthAwarePaginator|Collection;
+    public function search(?string $term, ?string $status = null, ?int $perPage = null, ?string $sortBy = null, ?string $sortDir = null): LengthAwarePaginator|Collection;
 }

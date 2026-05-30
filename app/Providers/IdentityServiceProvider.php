@@ -28,6 +28,8 @@ class IdentityServiceProvider extends ModuleServiceProvider
      */
     protected array $commands = [
         \Modules\Identity\Console\Commands\IdentityDoctorCommand::class,
+        \Modules\Identity\Console\Commands\IdentitySyncProfilesCommand::class,
+        \Modules\Identity\Console\Commands\IdentitySeedUsersCommand::class,
     ];
 
     /**
@@ -98,9 +100,28 @@ class IdentityServiceProvider extends ModuleServiceProvider
     public function boot(): void
     {
         $moduleBasePath = dirname(__DIR__, 2);
+        $viewsPath = $moduleBasePath.'/resources/views';
+        $configPath = $moduleBasePath.'/config/identity.php';
 
-        // Register View Namespace (Fix for "No hint path defined for [user]")
-        $this->loadViewsFrom($moduleBasePath.'/resources/views', 'identity');
+        // Register namespace with host override first, then package fallback.
+        $this->loadViewsFrom([
+            resource_path('views/vendor/identity'),
+            $viewsPath,
+        ], 'identity');
+
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                $viewsPath => resource_path('views/vendor/identity'),
+            ], 'views');
+
+            $this->publishes([
+                $viewsPath => resource_path('views/vendor/identity'),
+            ], 'identity-views');
+
+            $this->publishes([
+                $configPath => config_path('identity.php'),
+            ], 'identity-config');
+        }
 
         $this->mergeConfigFrom(
             $moduleBasePath.'/config/identity.php', 'identity'

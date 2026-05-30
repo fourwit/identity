@@ -4,24 +4,31 @@ namespace Modules\Identity\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\Identity\Contracts\UserRepositoryInterface;
 use Modules\Identity\Http\Requests\Account\UpdateProfileRequest;
 use Modules\Identity\Transformers\UserResource;
 
 class ProfileController extends Controller
 {
+    public function __construct(
+        protected UserRepositoryInterface $repository
+    ) {}
+
     public function show()
     {
-        $user = auth()->user();
+        $user = $this->repository->findByIdOrFail((int) auth()->id());
         return view('identity::account.profile', compact('user'));
     }
 
     public function update(UpdateProfileRequest $request)
     {
-        $user = auth()->user();
-        
-        $user->update($request->only([
+        $user = $this->repository->findByIdOrFail((int) auth()->id());
+
+        $this->repository->update($user, $request->only([
             'name', 'first_name', 'last_name', 'email', 'phone', 'username', 'timezone', 'locale'
         ]));
+
+        $user = $this->repository->findByIdOrFail((int) auth()->id());
 
         if ($request->expectsJson()) {
             return new UserResource($user);
@@ -32,14 +39,14 @@ class ProfileController extends Controller
 
     public function me(Request $request)
     {
-        return new UserResource(auth()->user());
+        $user = $this->repository->findByIdOrFail((int) auth()->id());
+        return new UserResource($user);
     }
 
     public function removeAvatar(Request $request)
     {
-        $user = auth()->user();
-        $user->avatar_id = null;
-        $user->save();
+        $user = $this->repository->findByIdOrFail((int) auth()->id());
+        $this->repository->update($user, ['avatar_id' => null]);
 
         if ($request->expectsJson()) {
             return response()->json([

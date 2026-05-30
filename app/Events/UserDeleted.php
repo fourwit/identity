@@ -16,14 +16,16 @@ class UserDeleted
     
     public int $userId;
     public string $userName;
+    public string $source;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(int $userId, string $userName)
+    public function __construct(int $userId, string $userName, string $source = 'web')
     {
         $this->userId = $userId;
         $this->userName = $userName;
+        $this->source = $source;
     }
 
     /**

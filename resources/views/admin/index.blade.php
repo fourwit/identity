@@ -1,87 +1,99 @@
-@extends('identity::components.layouts.master')
+@extends(config('identity.views.layout'))
 
 @section('title', 'Users Management')
 
 @section('content')
-<div class="p-6">
-    <!-- Header -->
-    <!-- <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">Users</h1>
-            <p class="text-gray-600 mt-1">Manage all system users</p>
-        </div>
-        <a href="{{ route('admin.users.create') }}" 
-           class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Add New User
-        </a>
-    </div> -->
+<div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">Users</h1>
-            <p class="text-gray-600 mt-1">Manage all system users</p>
-        </div>
-        
-        <div class="flex gap-3">
-            <a href="{{ route('admin.activity-logs.index') }}" 
-            class="inline-flex items-center px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition">
-                <i class="fas fa-history mr-2"></i> View Activity Logs
-            </a>
+    @if(config('identity.views.show_page_title_row', true))
+        <div class="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-6">
+            <div>
+                <h1 class="font-semibold text-xl text-gray-800 leading-tight">Users</h1>
+                <p class="text-gray-600 mt-1">Manage all system users</p>
+            </div>
             
-            <a href="{{ route('admin.users.create') }}" 
-            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                <i class="fas fa-plus mr-2"></i> Add New User
-            </a>
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ route('admin.activity-logs.index') }}" 
+                class="inline-flex items-center px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition">
+                    <i class="fas fa-history mr-2"></i> View Activity Logs
+                </a>
+                
+                <a href="{{ route('admin.users.create') }}" 
+                class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-plus mr-2"></i> Add New User
+                </a>
+            </div>
         </div>
-    </div>
+    @endif
 
     <!-- Search & Filters -->
     <form method="GET" action="{{ route('admin.users.index') }}">
+        @php
+            $selectedPerPage = (string) request('per_page', config('identity.user.per_page', 15));
+            $sortBy = request('sort_by', 'created_at');
+            $sortDir = request('sort_dir', 'desc');
+            $sortIcon = function (string $column) use ($sortBy, $sortDir): string {
+                if ($sortBy !== $column) {
+                    return '<svg class="w-4 h-4 inline-block ml-1 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 4l3 3H7l3-3zm0 12l-3-3h6l-3 3z"/></svg>';
+                }
+
+                if ($sortDir === 'asc') {
+                    return '<svg class="w-4 h-4 inline-block ml-1 text-gray-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 4l4 4H6l4-4z"/></svg>';
+                }
+
+                return '<svg class="w-4 h-4 inline-block ml-1 text-gray-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 16l-4-4h8l-4 4z"/></svg>';
+            };
+            $sortLink = function (string $column) use ($sortBy, $sortDir): string {
+                $dir = ($sortBy === $column && $sortDir === 'asc') ? 'desc' : 'asc';
+                return request()->fullUrlWithQuery(['sort_by' => $column, 'sort_dir' => $dir]);
+            };
+        @endphp
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-            <div class="flex flex-col md:flex-row gap-4">
-                <div class="flex-3">
+            <div class="flex flex-wrap items-end gap-4">
+                <div class="flex-[2] min-w-[220px]">
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Search</label>
                     <input type="text" name="search" value="{{ request('search') }}" 
                         placeholder="Search by name, email or phone..." 
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
-                <select name="status" class="px-4 py-2 border border-gray-300 rounded-lg">
-                    <option value="">All Status</option>
-                    <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    <option value="suspended" {{ request('status') == 'suspended' ? 'selected' : '' }}>Suspended</option>
-                </select>
-                <button type="submit" class="px-6 py-2 bg-gray-800 text-white rounded-lg">Filter</button>
+                <div class="flex-1 min-w-[170px]">
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Status</label>
+                    <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        <option value="">All Status</option>
+                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        <option value="suspended" {{ request('status') == 'suspended' ? 'selected' : '' }}>Suspended</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[170px]">
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Per Page</label>
+                    <select name="per_page" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        @foreach(config('identity.user.per_page_options', [5, 15, 25, 50, 100, 500, 1000]) as $size)
+                            <option value="{{ $size }}" {{ $selectedPerPage === (string) $size ? 'selected' : '' }}>{{ $size }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[140px]">
+                    <label class="mb-1 block text-sm font-medium text-gray-700">&nbsp;</label>
+                    <button type="submit" class="w-full px-6 py-2 bg-gray-800 text-white rounded-lg">Filter</button>
+                </div>
+                <div class="flex-1 min-w-[140px]">
+                    <label class="mb-1 block text-sm font-medium text-gray-700">&nbsp;</label>
+                    <a href="{{ route('admin.users.index') }}" class="block w-full px-6 py-2 text-center text-gray-700 hover:bg-gray-100 rounded-lg transition">Clear</a>
+                </div>
             </div>
         </div>
     </form>
 
-    <!-- <form method="GET" action="{{ route('admin.users.index') }}" class="flex flex-col md:flex-row gap-4">
-        <input type="text" name="search" value="{{ request('search') }}" 
-            placeholder="Search by name, email or phone..." 
-            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg">
-        
-        <select name="status" class="px-4 py-2 border border-gray-300 rounded-lg">
-            <option value="">All Status</option>
-            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-            <option value="suspended" {{ request('status') == 'suspended' ? 'selected' : '' }}>Suspended</option>
-        </select>
-        
-        <button type="submit" class="px-6 py-2 bg-gray-800 text-white rounded-lg">Filter</button>
-    </form> -->
-
     <!-- Users Table -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto w-full">
+        <table class="w-full min-w-[960px] divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Last Login</th>
+                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"><a class="inline-flex items-center justify-start" href="{{ $sortLink('name') }}">User {!! $sortIcon('name') !!}</a></th>
+                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"><a class="inline-flex items-center justify-start" href="{{ $sortLink('phone') }}">Contact {!! $sortIcon('phone') !!}</a></th>
+                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"><a class="inline-flex items-center justify-start" href="{{ $sortLink('status') }}">Status {!! $sortIcon('status') !!}</a></th>
+                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"><a class="inline-flex items-center justify-start" href="{{ $sortLink('last_login_at') }}">Last Login {!! $sortIcon('last_login_at') !!}</a></th>
                     <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
@@ -94,7 +106,9 @@
                                 @if($user->avatar_id)
                                     <img src="{{ $user->avatar?->url }}" class="w-full h-full object-cover">
                                 @else
-                                    <span class="text-gray-600 font-medium">{{ strtoupper(substr($user->name, 0, 1)) }}</span>
+                                    <div class="w-full h-full flex items-center justify-center rounded-full bg-blue-100 text-blue-600 font-semibold">
+                                        {{ strtoupper(substr($user->name, 0, 1)) }}
+                                    </div>
                                 @endif
                             </div>
                             <div class="ml-4">
@@ -107,12 +121,15 @@
                         {{ $user->phone ?? '—' }}
                     </td>
                     <td class="px-6 py-4">
+                        @php
+                            $statusLabel = $user->status?->label() ?? 'Pending';
+                        @endphp
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-                            @if($user->status->label() === 'Active') bg-green-100 text-green-800
-                            @elseif($user->status->label() === 'Inactive') bg-gray-100 text-gray-800
-                            @elseif($user->status->label() === 'Suspended') bg-red-100 text-red-800
+                            @if($statusLabel === 'Active') bg-green-100 text-green-800
+                            @elseif($statusLabel === 'Inactive') bg-gray-100 text-gray-800
+                            @elseif($statusLabel === 'Suspended') bg-red-100 text-red-800
                             @else bg-yellow-100 text-yellow-800 @endif">
-                            {{ ucfirst($user->status->label()) }}
+                            {{ ucfirst($statusLabel) }}
                         </span>
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-600">
@@ -120,7 +137,11 @@
                     </td>
                     <td class="px-6 py-4 text-right">
                         <div class="flex justify-end gap-2">
-                            <a href="{{ route('admin.users.edit', $user) }}" 
+                            @php
+                                $editUrl = route('admin.users.edit', $user) . '?' . http_build_query(['redirect_to' => request()->fullUrl()]);
+                            @endphp
+                            <a
+                               href="{{ $editUrl }}"
                                class="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition">Edit</a>
                             
                             <button onclick="confirmDelete({{ $user->id }}, '{{ $user->name }}')"
@@ -139,8 +160,27 @@
         </table>
     </div>
 
-    <div class="mt-6">
-        {{ $users->links() }}
+    <div class="mt-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <form id="perPageForm" method="GET" action="{{ route('admin.users.index') }}" class="flex items-center gap-2 text-sm text-gray-700">
+            <input type="hidden" name="search" value="{{ request('search') }}">
+            <input type="hidden" name="status" value="{{ request('status') }}">
+            <input type="hidden" name="sort_by" value="{{ request('sort_by', 'created_at') }}">
+            <input type="hidden" name="sort_dir" value="{{ request('sort_dir', 'desc') }}">
+            Per page:
+            <select id="perPageSelect" name="per_page" class="px-3 py-1.5 border border-gray-300 rounded-lg">
+                @foreach(config('identity.user.per_page_options', [5, 15, 25, 50, 100, 500, 1000]) as $size)
+                    <option value="{{ $size }}" {{ $selectedPerPage === (string) $size ? 'selected' : '' }}>
+                        {{ $size }}
+                    </option>
+                @endforeach
+            </select>
+            <span>
+                Showing {{ $users->firstItem() ?? 0 }} to {{ $users->lastItem() ?? 0 }} of {{ $users->total() }} results
+            </span>
+        </form>
+        <div class="identity-pagination overflow-x-auto">
+            {{ $users->onEachSide(1)->appends(request()->query())->links('identity::pagination.tailwind-no-summary') }}
+        </div>
     </div>
 </div>
 
@@ -157,6 +197,7 @@
             <form id="deleteForm" method="POST" class="inline">
                 @csrf
                 @method('DELETE')
+                <input type="hidden" name="redirect_to" id="deleteRedirectTo" value="{{ request()->fullUrl() }}">
                 <button type="submit" 
                         class="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition">Delete User</button>
             </form>
@@ -167,6 +208,35 @@
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const key = 'identity_admin_users_per_page';
+    const select = document.getElementById('perPageSelect');
+    if (!select) return;
+
+    const form = document.getElementById('perPageForm');
+    const url = new URL(window.location.href);
+    const perPageFromUrl = url.searchParams.get('per_page');
+
+    if (perPageFromUrl) {
+        localStorage.setItem(key, perPageFromUrl);
+    } else {
+        const stored = localStorage.getItem(key);
+        if (stored && [...select.options].some(option => option.value === stored)) {
+            select.value = stored;
+            if (form) {
+                form.submit();
+            }
+        }
+    }
+
+    select.addEventListener('change', function () {
+        localStorage.setItem(key, this.value);
+        if (form) {
+            form.submit();
+        }
+    });
+});
+
 function confirmDelete(id, name) {
     document.getElementById('deleteUserName').innerText = name;
     const form = document.getElementById('deleteForm');

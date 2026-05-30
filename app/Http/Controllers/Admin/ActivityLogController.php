@@ -11,7 +11,7 @@ class ActivityLogController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ActivityLog::with(['causer', 'subject'])->latest();
+        $query = ActivityLog::with(['causer', 'subject']);
 
         // Search by description
         if ($request->filled('search')) {
@@ -37,7 +37,16 @@ class ActivityLogController extends Controller
             $query->where('causer_id', $request->user_id);
         }
 
-        $logs = $query->paginate(25);
+        $sortBy = (string) $request->get('sort_by', 'created_at');
+        $sortDir = strtolower((string) $request->get('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $allowedSorts = ['created_at', 'description', 'source', 'causer_id', 'ip_address'];
+        if (!in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'created_at';
+        }
+        $query->orderBy($sortBy, $sortDir);
+
+        $perPage = (int) $request->get('per_page', config('identity.user.per_page', 25));
+        $logs = $query->paginate($perPage)->appends($request->query());
 
         // Get all users for filter dropdown
         $userModelClass = IdentityConfig::userModelClass();

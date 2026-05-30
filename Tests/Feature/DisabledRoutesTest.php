@@ -4,6 +4,8 @@ namespace Modules\Identity\Tests\Feature;
 
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\RouteCollection;
+use Modules\Identity\Providers\RouteServiceProvider;
 
 class DisabledRoutesTest extends TestCase
 {
@@ -11,19 +13,26 @@ class DisabledRoutesTest extends TestCase
 
     protected function setUp(): void
     {
-        // 1. Set the environment variable to false BEFORE booting the app
-        putenv('USER_ENABLE_WEB_VIEWS=false');
-        putenv('USER_ENABLE_API_ROUTES=false');
-
         parent::setUp();
+
+        config([
+            'identity.views.layout' => 'identity::components.layouts.master',
+            'identity.features.web_views' => false,
+            'identity.features.api_routes' => false,
+        ]);
+
+        // Rebuild only the route table for this test run so disabled flags apply.
+        $router = $this->app['router'];
+        $router->setRoutes(new RouteCollection());
+        (new RouteServiceProvider($this->app))->map();
 
     }
 
     protected function tearDown(): void
     {
-        // 4. Clean up the environment variables so they don't break other tests
-        putenv('USER_ENABLE_WEB_VIEWS');
-        putenv('USER_ENABLE_API_ROUTES');
+        // Restore a fresh application so route mutations in this test class
+        // do not leak into subsequent test classes.
+        $this->refreshApplication();
 
         parent::tearDown();
     }

@@ -20,6 +20,16 @@ class EventServiceProvider extends ServiceProvider
         ],
         \Modules\Identity\Events\UserDeleted::class => [
             \Modules\Identity\Listeners\LogUserActivity::class,
+            \Modules\Identity\Listeners\LogAccountActivityToDatabase::class,
+        ],
+        \Modules\Identity\Events\ProfileUpdated::class => [
+            \Modules\Identity\Listeners\LogAccountActivityToDatabase::class,
+        ],
+        \Modules\Identity\Events\UserPasswordUpdated::class => [
+            \Modules\Identity\Listeners\LogAccountActivityToDatabase::class,
+        ],
+        \Modules\Identity\Events\AccountDeleted::class => [
+            \Modules\Identity\Listeners\LogAccountActivityToDatabase::class,
         ],
     ];
 

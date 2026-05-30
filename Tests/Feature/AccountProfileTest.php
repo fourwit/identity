@@ -6,6 +6,7 @@ use Tests\TestCase;
 use Modules\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Identity\Support\BootstrapsIdentitySchema;
+use Modules\Identity\Providers\RouteServiceProvider;
 
 class AccountProfileTest extends TestCase
 {
@@ -15,7 +16,12 @@ class AccountProfileTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        config(['identity.views.layout' => 'identity::components.layouts.master', 'identity.features.account_web_routes' => true]);
         $this->bootstrapIdentitySchemaForTests();
+        $provider = new RouteServiceProvider($this->app);
+        $provider->boot();
+        $provider->map();
         
         // Remove auth middleware for tests, but we will mock login.
         // Wait, for account profile tests, we WANT auth to work!
@@ -33,7 +39,7 @@ class AccountProfileTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)
-            ->get(route('identity.account.profile.show'));
+            ->get('/account/profile');
 
         $response->assertStatus(200);
         $response->assertViewIs('identity::account.profile');
@@ -48,7 +54,7 @@ class AccountProfileTest extends TestCase
             'name' => 'Old Name',
         ]);
 
-        $response = $this->actingAs($user)->put(route('identity.account.profile.update'), [
+        $response = $this->actingAs($user)->put('/account/profile', [
             'name' => 'New Name',
             'first_name' => 'New',
             'last_name' => 'Name',
@@ -68,7 +74,7 @@ class AccountProfileTest extends TestCase
             'password' => bcrypt('oldpassword'),
         ]);
 
-        $response = $this->actingAs($user)->put(route('identity.account.password.update'), [
+        $response = $this->actingAs($user)->put('/account/password', [
             'current_password' => 'oldpassword',
             'password' => 'newpassword',
             'password_confirmation' => 'newpassword',
@@ -87,7 +93,7 @@ class AccountProfileTest extends TestCase
             'avatar_id' => 123,
         ]);
 
-        $response = $this->actingAs($user)->delete(route('identity.account.avatar.remove'));
+        $response = $this->actingAs($user)->delete('/account/avatar');
 
         $response->assertRedirect();
         $this->assertNull($user->fresh()->avatar_id);
@@ -101,7 +107,7 @@ class AccountProfileTest extends TestCase
             'phone_verified_at' => null,
         ]);
 
-        $response = $this->actingAs($user)->get(route('identity.account.verification.status'));
+        $response = $this->actingAs($user)->get('/account/verification-status');
 
         $response->assertStatus(200);
         $response->assertViewIs('identity::account.verification');

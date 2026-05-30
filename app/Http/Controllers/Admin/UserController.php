@@ -19,6 +19,7 @@ use Modules\Identity\Exceptions\ModuleException;
 use Modules\Identity\Exceptions\UserNotFoundException;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 
 class UserController extends Controller
 {
@@ -35,7 +36,9 @@ class UserController extends Controller
         $users = $this->repository->search(
             $request->get('search'),      // search term
             $request->get('status'),      // status filter
-            $perPage                            // per page
+            $perPage,                           // per page
+            $request->get('sort_by'),
+            $request->get('sort_dir')
         );
         // dd($users->toArray()); // ← TEMPORARY: Check what users are returned
         return view('identity::admin.index', compact('users'));
@@ -59,25 +62,37 @@ class UserController extends Controller
 
     public function edit(Model $user)
     {
+        $user = $this->repository->findByIdOrFail((int) $user->getKey());
         return view('identity::admin.edit', compact('user'));
     }
 
     public function update(UpdateUserRequest $request, Model $user, UpdateUserAction $action)
     {
+        $user = $this->repository->findByIdOrFail((int) $user->getKey());
         $data = UserData::fromRequest($request);
         $action->execute($user, $data, 'web');
 
-        return redirect()
-            ->route('admin.users.index')
+        return $this->redirectBackToListing($request)
             ->with('success', 'User updated successfully.');
     }
 
-    public function destroy(Model $user, DeleteUserAction $action)
+    public function destroy(Request $request, Model $user, DeleteUserAction $action)
     {
+        $user = $this->repository->findByIdOrFail((int) $user->getKey());
         $action->execute($user, 'web');
 
-        return redirect()
-            ->route('admin.users.index')
+        return $this->redirectBackToListing($request)
             ->with('success', 'User deleted successfully.');
+    }
+
+    protected function redirectBackToListing(Request $request): RedirectResponse
+    {
+        $returnTo = (string) $request->input('redirect_to', '');
+
+        if ($returnTo !== '') {
+            return redirect()->to($returnTo);
+        }
+
+        return redirect()->route('admin.users.index');
     }
 }

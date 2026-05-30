@@ -35,7 +35,9 @@ class UserController extends BaseApiController
         $users = $this->repository->search(
             $request->get('search'),      // search term
             $request->get('status'),      // status filter
-            $perPage                            // per page
+            $perPage,                           // per page
+            $request->get('sort_by'),
+            $request->get('sort_dir')
         );
 
         return $this->paginatedResponse(

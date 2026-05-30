@@ -21,6 +21,7 @@ Route::middleware(config('identity.routes.middleware.admin', ['web', "auth:{$adm
 
 
 // Self-service account routes
+if (config('identity.features.account_web_routes', true)) {
 Route::middleware(config('identity.routes.middleware.web', ['web', "auth:{$webGuard}"]))
 ->prefix('account')
 ->name('identity.account.')
@@ -41,3 +42,4 @@ Route::middleware(config('identity.routes.middleware.web', ['web', "auth:{$webGu
     Route::get('/verification-status', [VerificationController::class, 'status'])
         ->name('verification.status');
 });
+}

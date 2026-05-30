@@ -15,6 +15,8 @@ class UserApiExceptionsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        config(['identity.views.layout' => 'identity::components.layouts.master', 'identity.features.account_web_routes' => true]);
         $this->bootstrapIdentitySchemaForTests();
     }
 

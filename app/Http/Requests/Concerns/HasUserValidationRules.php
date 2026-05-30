@@ -26,17 +26,19 @@ trait HasUserValidationRules
         $profilesTable = config('identity.tables.profiles', 'identity_profiles');
         $phoneUniqueTable = IdentityConfig::isOwnedMode() ? $usersTable : $profilesTable;
         $usernameUniqueTable = IdentityConfig::isOwnedMode() ? $usersTable : $profilesTable;
+        $phoneExceptColumn = IdentityConfig::isOwnedMode() ? 'id' : 'user_id';
+        $usernameExceptColumn = IdentityConfig::isOwnedMode() ? 'id' : 'user_id';
 
         $emailRule = $isUpdate 
             ? ($requireEmail ? "{$prefix}required|email|unique:{$usersTable},email,{$userId}" : "nullable|email|unique:{$usersTable},email,{$userId}")
             : ($requireEmail ? "required|email|unique:{$usersTable},email" : "nullable|email|unique:{$usersTable},email");
 
         $phoneRule = $isUpdate 
-            ? ($requirePhone ? "{$prefix}required|string|unique:{$phoneUniqueTable},phone,{$userId},user_id" : "nullable|string|unique:{$phoneUniqueTable},phone,{$userId},user_id")
+            ? ($requirePhone ? "{$prefix}required|string|unique:{$phoneUniqueTable},phone,{$userId},{$phoneExceptColumn}" : "nullable|string|unique:{$phoneUniqueTable},phone,{$userId},{$phoneExceptColumn}")
             : ($requirePhone ? "required|string|unique:{$phoneUniqueTable},phone" : "nullable|string|unique:{$phoneUniqueTable},phone");
 
         $usernameRule = $isUpdate 
-            ? ($requireUsername ? "{$prefix}required|string|unique:{$usernameUniqueTable},username,{$userId},user_id" : "nullable|string|unique:{$usernameUniqueTable},username,{$userId},user_id")
+            ? ($requireUsername ? "{$prefix}required|string|unique:{$usernameUniqueTable},username,{$userId},{$usernameExceptColumn}" : "nullable|string|unique:{$usernameUniqueTable},username,{$userId},{$usernameExceptColumn}")
             : ($requireUsername ? "required|string|unique:{$usernameUniqueTable},username" : "nullable|string|unique:{$usernameUniqueTable},username");
 
         $passwordRule = $isUpdate 

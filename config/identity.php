@@ -1,5 +1,14 @@
 <?php
 
+$perPageOptions = array_values(array_filter(array_map(
+    static fn ($value) => (int) trim((string) $value),
+    explode(',', (string) env('IDENTITY_PER_PAGE_OPTIONS', '5,15,25,50,100,500,1000'))
+), static fn (int $value) => $value > 0));
+
+if (empty($perPageOptions)) {
+    $perPageOptions = [5, 15, 25, 50, 100, 500, 1000];
+}
+
 return [
     'mode' => env('IDENTITY_MODE', 'shared'),
 
@@ -23,6 +32,7 @@ return [
         'uuid' => env('IDENTITY_ENABLE_UUID', false),
         'username' => env('IDENTITY_ENABLE_USERNAME', true),
         'web_views' => env('USER_ENABLE_WEB_VIEWS', true),
+        'account_web_routes' => env('IDENTITY_ACCOUNT_WEB_ROUTES', true),
         'api_routes' => env('USER_ENABLE_API_ROUTES', true),
         'two_factor' => env('IDENTITY_ENABLE_TWO_FACTOR', false),
         'login_history' => env('IDENTITY_ENABLE_LOGIN_HISTORY', true),
@@ -41,6 +51,7 @@ return [
         'allow_phone_only_accounts' => env('IDENTITY_ALLOW_PHONE_ONLY', false),
         'default_status' => env('IDENTITY_DEFAULT_STATUS', 'active'),
         'per_page' => env('IDENTITY_PER_PAGE', 5),
+        'per_page_options' => $perPageOptions,
         'searchable_fields' => ['name', 'email', 'phone', 'username'],
     ],
 
@@ -112,6 +123,21 @@ return [
         ],
     ],
 
+    'views' => [
+        /*
+        |--------------------------------------------------------------------------
+        | Layout Strategy
+        |--------------------------------------------------------------------------
+        | Default (standalone): identity::components.layouts.master
+        | Breeze host apps:     identity::components.layouts.breeze-app
+        | Generic host layouts: layouts.app / layouts.admin / custom layout
+        | Embedded mode:        identity::components.layouts.blank
+        */
+        'layout' => env('IDENTITY_LAYOUT', 'identity::components.layouts.master'),
+        // When false, title row + title-row action buttons are hidden on admin listing pages.
+        'show_page_title_row' => env('IDENTITY_SHOW_PAGE_TITLE_ROW', true),
+    ],
+
     'auth' => [
         'guards' => [
             'web' => env('IDENTITY_AUTH_GUARD_WEB', 'web'),
@@ -121,6 +147,18 @@ return [
         'providers' => [
             'users' => env('IDENTITY_AUTH_PROVIDER_USERS', 'users'),
         ],
+    ],
+
+    'protection' => [
+        'enabled' => env('IDENTITY_PROTECT_SUPER_ADMIN', true),
+        'super_admin_uuid' => env('IDENTITY_SUPER_ADMIN_UUID', null),
+        'super_admin_email' => env('IDENTITY_SUPER_ADMIN_EMAIL', 'admin@example.com'),
+        'super_admin_name' => env('IDENTITY_SUPER_ADMIN_NAME', 'Super Admin'),
+    ],
+
+    'deletion' => [
+        // safe: require SoftDeletes support; hard: allow hard delete fallback
+        'strategy' => env('IDENTITY_DELETION_STRATEGY', 'safe'),
     ],
 
 ];

@@ -1,4 +1,4 @@
-@extends('identity::components.layouts.master')
+@extends(config('identity.views.layout'))
 
 @section('title', 'My Profile')
 
@@ -12,7 +12,7 @@
                 <div class="w-20 h-20 bg-gray-200 rounded-full flex-shrink-0 overflow-hidden relative group">
                     @if($user->avatar_id)
                         <img src="{{ $user->avatar?->url }}" class="w-full h-full object-cover">
-                        <form action="{{ route('identity.account.avatar.remove') }}" method="POST" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <form action="{{ url('/account/avatar') }}" method="POST" class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="text-white text-xs font-semibold">Remove</button>
@@ -30,7 +30,7 @@
             </div>
 
             <!-- Profile Info Form -->
-            <form action="{{ route('identity.account.profile.update') }}" method="POST">
+            <form action="{{ url('/account/profile') }}" method="POST">
                 @csrf
                 @method('PUT')
 
@@ -97,7 +97,7 @@
             <!-- Password Update Form -->
             <div class="mt-12 pt-8 border-t">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Change Password</h2>
-                <form action="{{ route('identity.account.password.update') }}" method="POST">
+                <form action="{{ url('/account/password') }}" method="POST">
                     @csrf
                     @method('PUT')
 
