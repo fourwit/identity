@@ -6,6 +6,7 @@ use Tests\TestCase;
 use Modules\Identity\Actions\UpdateUserAction;
 use Modules\Identity\DTOs\UserData;
 use Modules\Identity\Models\User;
+use Modules\Identity\Models\IdentityProfile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Identity\Events\UserUpdated;
@@ -40,8 +41,8 @@ class UpdateUserActionTest extends TestCase
         $user = User::factory()->create([
             'name' => 'Original Name',
             'email' => 'original@example.com',
-            'status' => 'active',
         ]);
+        IdentityProfile::updateOrCreate(['user_id' => $user->id], ['status' => 'active']);
 
         $data = new UserData(
             name: 'Updated Name',
@@ -70,9 +71,8 @@ class UpdateUserActionTest extends TestCase
         $user = User::factory()->create([
             'name' => 'John Doe',
             'email' => 'john@example.com',
-            'phone' => '123456789',
-            'status' => 'active',
         ]);
+        IdentityProfile::updateOrCreate(['user_id' => $user->id], ['phone' => '123456789', 'status' => 'active']);
 
         // Create DTO with nulls for email and phone, meaning keep original
         $data = new UserData(

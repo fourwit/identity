@@ -4,6 +4,7 @@ namespace Modules\Identity\Tests\Feature\Web;
 
 use Tests\TestCase;
 use Modules\Identity\Models\User;
+use Modules\Identity\Models\IdentityProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Identity\Support\BootstrapsIdentitySchema;
 
@@ -50,7 +51,7 @@ class UserWebCrudTest extends TestCase
         $user = User::factory()->create();
         $response = $this->delete("/admin/users/{$user->id}");
         $response->assertRedirect('/admin/users');
-        $this->assertSoftDeleted('users', ['id' => $user->id]);
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
 
     public function test_that_can_search_users()
@@ -62,8 +63,10 @@ class UserWebCrudTest extends TestCase
 
     public function test_that_can_filter_users_by_status()
     {
-        User::factory()->create(['status' => 'active', 'name' => 'Active User']);
-        User::factory()->create(['status' => 'inactive', 'name' => 'Inactive User']);
+        $active = User::factory()->create(['name' => 'Active User']);
+        IdentityProfile::updateOrCreate(['user_id' => $active->id], ['status' => 'active']);
+        $inactive = User::factory()->create(['name' => 'Inactive User']);
+        IdentityProfile::updateOrCreate(['user_id' => $inactive->id], ['status' => 'inactive']);
         $this->get('/admin/users?status=active')->assertStatus(200)->assertSee('Active User')->assertDontSee('Inactive User');
     }
 }

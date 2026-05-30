@@ -49,15 +49,15 @@ class DeleteUserActionTest extends TestCase
         $user = User::factory()->create([
             'id' => 2,
             'name' => 'Regular User',
-            'status' => 'inactive',
         ]);
+        IdentityProfile::updateOrCreate(['user_id' => $user->id], ['status' => 'inactive']);
 
         $userId = $user->id;
         $userName = $user->name;
 
         $this->action->execute($user, 'web');
 
-        $this->assertSoftDeleted($user);
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
         Event::assertDispatched(UserDeleted::class, function ($event) use ($userId, $userName) {
             return $event->userId === $userId && $event->userName === $userName;
         });
@@ -69,8 +69,8 @@ class DeleteUserActionTest extends TestCase
         $user = User::factory()->create([
             'name' => 'Any Name',
             'email' => 'super-admin@example.com',
-            'status' => 'active',
         ]);
+        IdentityProfile::updateOrCreate(['user_id' => $user->id], ['status' => 'active']);
 
         $this->expectException(CannotDeleteUserException::class);
         $this->expectExceptionMessage('Cannot delete the main admin user');
@@ -84,8 +84,8 @@ class DeleteUserActionTest extends TestCase
         $user = User::factory()->create([
             'id' => 2,
             'name' => 'Active User',
-            'status' => 'active',
         ]);
+        IdentityProfile::updateOrCreate(['user_id' => $user->id], ['status' => 'active']);
 
         $this->action->execute($user, 'web');
 

@@ -24,10 +24,10 @@ trait HasUserValidationRules
         $requireUsername = config('identity.user.require_username');
         $usersTable = IdentityConfig::usersTable();
         $profilesTable = config('identity.tables.profiles', 'identity_profiles');
-        $phoneUniqueTable = IdentityConfig::isOwnedMode() ? $usersTable : $profilesTable;
-        $usernameUniqueTable = IdentityConfig::isOwnedMode() ? $usersTable : $profilesTable;
-        $phoneExceptColumn = IdentityConfig::isOwnedMode() ? 'id' : 'user_id';
-        $usernameExceptColumn = IdentityConfig::isOwnedMode() ? 'id' : 'user_id';
+        $phoneUniqueTable = $profilesTable;
+        $usernameUniqueTable = $profilesTable;
+        $phoneExceptColumn = 'user_id';
+        $usernameExceptColumn = 'user_id';
 
         $emailRule = $isUpdate 
             ? ($requireEmail ? "{$prefix}required|email|unique:{$usersTable},email,{$userId}" : "nullable|email|unique:{$usersTable},email,{$userId}")

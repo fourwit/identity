@@ -76,12 +76,52 @@ php artisan identity:sync-profiles
 
 ---
 
+## 3.1 Fresh Install vs Upgrade Checklist
+
+Use this quick guide to avoid migration confusion.
+
+### Fresh install (new project / clean database)
+1. Set mode and mapping in `.env` (`IDENTITY_MODE`, `IDENTITY_USER_MODEL`, table names).
+2. Run:
+```bash
+php artisan migrate
+php artisan identity:doctor
+```
+3. Optional (only if users already existed before enabling Identity):
+```bash
+php artisan identity:sync-profiles
+```
+
+### Upgrade existing install (from older fat `users` schema)
+1. Back up database.
+2. Pull latest module code.
+3. Run:
+```bash
+php artisan migrate
+```
+4. Validate:
+```bash
+php artisan identity:doctor
+```
+5. Optional safety sync for any users created outside module actions:
+```bash
+php artisan identity:sync-profiles
+```
+
+Notes:
+- The backfill migration `2026_06_01_000000_backfill_identity_profiles_from_users.php` is part of upgrade safety and should remain.
+- In shared mode, host `users` is not required to include identity-only columns like `uuid`, `username`, `phone`, `status`, etc.
+
+---
+
 ## 4. Owned vs Shared Mode
 
 ## `IDENTITY_MODE=owned`
 Use when module owns user table/schema.
 
-- Module manages its own full users fields.
+- Module creates a Laravel-default `users` table only:
+  - `id`, `name`, `email`, `email_verified_at`, `password`, `remember_token`, `created_at`, `updated_at`
+- Identity-specific fields are stored in `identity_profiles`.
 - Suitable for greenfield apps or module-first projects.
 
 ## `IDENTITY_MODE=shared`
@@ -96,6 +136,16 @@ If existing users were created outside module actions (for example via Breeze/Ti
 ```bash
 php artisan identity:sync-profiles
 ```
+
+### Upgrade note (important)
+If you are upgrading from an older Identity version that stored identity fields directly on `users`, the module includes:
+- `2026_06_01_000000_backfill_identity_profiles_from_users.php`
+
+Purpose:
+- Copies legacy identity columns from `users` into `identity_profiles` (idempotent).
+- Prevents data loss during transition to thin `users` + profile-owned identity attributes.
+
+Do not remove this migration for upgrade paths. It is harmless for fresh installs and no-ops when legacy columns are absent.
 
 ---
 
@@ -147,6 +197,23 @@ Resolution order is host overrides first, then module fallback.
 If you use package views directly (without publishing), include package Blade paths in Tailwind `content`.
 
 If you want full visual customization, publish views and edit the published copies.
+
+### Publish options (recommended)
+You can publish specific assets instead of relying only on `.env`:
+
+```bash
+# Publish views
+php artisan vendor:publish --provider="Modules\\Identity\\Providers\\IdentityServiceProvider" --tag=views
+
+# Publish config (standard Laravel tag)
+php artisan vendor:publish --provider="Modules\\Identity\\Providers\\IdentityServiceProvider" --tag=config
+
+# Publish config (module-specific tag)
+php artisan vendor:publish --provider="Modules\\Identity\\Providers\\IdentityServiceProvider" --tag=identity-config
+
+# Publish views (module-specific tag)
+php artisan vendor:publish --provider="Modules\\Identity\\Providers\\IdentityServiceProvider" --tag=identity-views
+```
 
 ---
 
@@ -318,4 +385,3 @@ Before release/tag:
 - Confirm shared and owned mode basics
 - Confirm `identity:doctor` and `identity:sync-profiles` behavior
 - Confirm published views and layout overrides
-

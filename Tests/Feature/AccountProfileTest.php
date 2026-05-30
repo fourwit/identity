@@ -4,6 +4,7 @@ namespace Modules\Identity\Tests\Feature;
 
 use Tests\TestCase;
 use Modules\Identity\Models\User;
+use Modules\Identity\Models\IdentityProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Identity\Support\BootstrapsIdentitySchema;
 use Modules\Identity\Providers\RouteServiceProvider;
@@ -89,9 +90,8 @@ class AccountProfileTest extends TestCase
     /** @test */
     public function test_it_can_remove_avatar()
     {
-        $user = User::factory()->create([
-            'avatar_id' => 123,
-        ]);
+        $user = User::factory()->create();
+        IdentityProfile::updateOrCreate(['user_id' => $user->id], ['avatar_id' => 123]);
 
         $response = $this->actingAs($user)->delete('/account/avatar');
 
@@ -102,10 +102,8 @@ class AccountProfileTest extends TestCase
     /** @test */
     public function test_it_can_view_verification_status()
     {
-        $user = User::factory()->create([
-            'email_verified_at' => now(),
-            'phone_verified_at' => null,
-        ]);
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        IdentityProfile::updateOrCreate(['user_id' => $user->id], ['phone_verified_at' => null]);
 
         $response = $this->actingAs($user)->get('/account/verification-status');
 

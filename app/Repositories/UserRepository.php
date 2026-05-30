@@ -2,35 +2,40 @@
 
 namespace Modules\Identity\Repositories;
 
-use Illuminate\Database\Eloquent\Collection;
-use Modules\Identity\Contracts\UserRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Modules\Identity\Exceptions\UserNotFoundException;
-use Illuminate\Database\Eloquent\Model;
-use Modules\Identity\Support\IdentityConfig;
-use Modules\Identity\Models\IdentityProfile;
-use Illuminate\Support\Facades\Schema;
-use Modules\Identity\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
+use Modules\Identity\Contracts\UserRepositoryInterface;
+use Modules\Identity\Enums\UserStatus;
+use Modules\Identity\Exceptions\UserNotFoundException;
+use Modules\Identity\Models\IdentityProfile;
+use Modules\Identity\Support\IdentityConfig;
 
 class UserRepository implements UserRepositoryInterface
 {
-    protected array $sharedModeCoreFields = [
+    protected array $coreFields = [
         'name',
         'email',
         'email_verified_at',
         'password',
     ];
 
-    protected array $sharedModeProfileFields = [
+    protected array $profileFields = [
+        'uuid',
         'first_name',
         'last_name',
         'phone',
         'username',
         'status',
         'avatar_id',
+        'phone_verified_at',
         'timezone',
         'locale',
+        'last_login_at',
+        'last_login_ip',
+        'remember_me',
         'two_factor_enabled',
         'two_factor_secret',
         'metadata',
@@ -41,7 +46,7 @@ class UserRepository implements UserRepositoryInterface
         return IdentityConfig::userModelClass();
     }
 
-    protected function query()
+    protected function query(): Builder
     {
         $modelClass = $this->userModelClass();
         return $modelClass::query();
@@ -50,13 +55,14 @@ class UserRepository implements UserRepositoryInterface
     public function getAll(?int $perPage = null): LengthAwarePaginator|Collection
     {
         $query = $this->query()->latest();
+
         if ($perPage) {
             $paginator = $query->paginate($perPage);
-            $paginator->getCollection()->transform(fn ($user) => $this->hydrateSharedProfile($user));
+            $paginator->getCollection()->transform(fn ($user) => $this->hydrateIdentityProfile($user));
             return $paginator;
         }
 
-        return $query->get()->map(fn ($user) => $this->hydrateSharedProfile($user));
+        return $query->get()->map(fn ($user) => $this->hydrateIdentityProfile($user));
     }
 
     public function findById(int $id): ?Model
@@ -64,9 +70,9 @@ class UserRepository implements UserRepositoryInterface
         $modelClass = $this->userModelClass();
         $user = $modelClass::find($id);
 
-        return $user ? $this->hydrateSharedProfile($user) : null;
+        return $user ? $this->hydrateIdentityProfile($user) : null;
     }
-    
+
     public function findByIdOrFail(int $id): Model
     {
         $user = $this->findById($id);
@@ -81,49 +87,46 @@ class UserRepository implements UserRepositoryInterface
     public function findByEmail(string $email): ?Model
     {
         $user = $this->query()->where('email', $email)->first();
-        return $user ? $this->hydrateSharedProfile($user) : null;
+        return $user ? $this->hydrateIdentityProfile($user) : null;
     }
 
     public function findByUuid(string $uuid): ?Model
     {
-        if (!Schema::hasColumn(IdentityConfig::usersTable(), 'uuid')) {
+        $profilesTable = config('identity.tables.profiles', 'identity_profiles');
+        if (!Schema::hasColumn($profilesTable, 'uuid')) {
             return null;
         }
 
-        $user = $this->query()->where('uuid', $uuid)->first();
-        return $user ? $this->hydrateSharedProfile($user) : null;
+        $user = $this->query()->whereIn('id', function ($subQuery) use ($profilesTable, $uuid) {
+            $subQuery->from($profilesTable)
+                ->select('user_id')
+                ->where('uuid', $uuid);
+        })->first();
+
+        return $user ? $this->hydrateIdentityProfile($user) : null;
     }
 
     public function create(array $data): Model
     {
         $modelClass = $this->userModelClass();
-        if (IdentityConfig::isOwnedMode()) {
-            return $modelClass::create($data);
-        }
 
-        $coreData = array_intersect_key($data, array_flip($this->sharedModeCoreFields));
-        $profileData = array_intersect_key($data, array_flip($this->sharedModeProfileFields));
+        $coreData = array_intersect_key($data, array_flip($this->coreFields));
+        $profileData = array_intersect_key($data, array_flip($this->profileFields));
 
         $user = $modelClass::create($coreData);
 
-        if (!empty($profileData)) {
-            IdentityProfile::updateOrCreate(
-                ['user_id' => $user->id],
-                $profileData
-            );
-        }
+        IdentityProfile::updateOrCreate(
+            ['user_id' => $user->id],
+            $this->normalizeProfileData($profileData)
+        );
 
-        return $this->hydrateSharedProfile($user->refresh());
+        return $this->hydrateIdentityProfile($user->refresh());
     }
 
     public function update(Model $user, array $data): bool
     {
-        if (IdentityConfig::isOwnedMode()) {
-            return $user->update($data);
-        }
-
-        $coreData = array_intersect_key($data, array_flip($this->sharedModeCoreFields));
-        $profileData = array_intersect_key($data, array_flip($this->sharedModeProfileFields));
+        $coreData = array_intersect_key($data, array_flip($this->coreFields));
+        $profileData = array_intersect_key($data, array_flip($this->profileFields));
 
         $updated = true;
 
@@ -134,11 +137,11 @@ class UserRepository implements UserRepositoryInterface
         if (!empty($profileData)) {
             IdentityProfile::updateOrCreate(
                 ['user_id' => $user->id],
-                $profileData
+                $this->normalizeProfileData($profileData)
             );
         }
 
-        $this->hydrateSharedProfile($user->refresh());
+        $this->hydrateIdentityProfile($user->refresh());
 
         return $updated;
     }
@@ -148,8 +151,7 @@ class UserRepository implements UserRepositoryInterface
         return $user->delete();
     }
 
-    
-    public function search(?string $term, ?string $status = null, ?int $perPage = null, ?string $sortBy = null, ?string $sortDir = null) : LengthAwarePaginator|Collection
+    public function search(?string $term, ?string $status = null, ?int $perPage = null, ?string $sortBy = null, ?string $sortDir = null): LengthAwarePaginator|Collection
     {
         $query = $this->query();
 
@@ -181,7 +183,7 @@ class UserRepository implements UserRepositoryInterface
                 }
             }
 
-            if (!IdentityConfig::isOwnedMode() && !empty($profileFields)) {
+            if (!empty($profileFields)) {
                 $builder->orWhereIn('id', function ($subQuery) use ($term, $profileFields) {
                     $this->applyProfileSearchSubquery($subQuery, $term, $profileFields);
                 });
@@ -192,11 +194,6 @@ class UserRepository implements UserRepositoryInterface
     protected function applyStatus(Builder $query, ?string $status): void
     {
         if (empty($status)) {
-            return;
-        }
-
-        if (IdentityConfig::isOwnedMode()) {
-            $query->where('status', $status);
             return;
         }
 
@@ -231,15 +228,8 @@ class UserRepository implements UserRepositoryInterface
         $profileFields = [];
 
         foreach ($searchableFields as $field) {
-            if (in_array($field, ['phone', 'username', 'first_name', 'last_name'], true)) {
-                if (IdentityConfig::isOwnedMode() && Schema::hasColumn($usersTable, $field)) {
-                    $hostFields[] = $field;
-                }
-
-                if (!IdentityConfig::isOwnedMode()) {
-                    $profileFields[] = $field;
-                }
-
+            if (in_array($field, ['uuid', 'phone', 'username', 'first_name', 'last_name', 'status'], true)) {
+                $profileFields[] = $field;
                 continue;
             }
 
@@ -271,11 +261,11 @@ class UserRepository implements UserRepositoryInterface
     {
         if ($perPage) {
             $paginator = $query->paginate($perPage);
-            $paginator->getCollection()->transform(fn ($user) => $this->hydrateSharedProfile($user));
+            $paginator->getCollection()->transform(fn ($user) => $this->hydrateIdentityProfile($user));
             return $paginator;
         }
 
-        return $query->get()->map(fn ($user) => $this->hydrateSharedProfile($user));
+        return $query->get()->map(fn ($user) => $this->hydrateIdentityProfile($user));
     }
 
     protected function applySort(Builder $query, ?string $sortBy, ?string $sortDir): void
@@ -283,14 +273,14 @@ class UserRepository implements UserRepositoryInterface
         $direction = strtolower((string) $sortDir) === 'asc' ? 'asc' : 'desc';
         $sortBy = (string) ($sortBy ?? 'created_at');
 
-        $allowedHostSortColumns = ['id', 'name', 'email', 'last_login_at', 'created_at'];
+        $allowedHostSortColumns = ['id', 'name', 'email', 'created_at'];
 
         if (in_array($sortBy, $allowedHostSortColumns, true) && Schema::hasColumn(IdentityConfig::usersTable(), $sortBy)) {
             $query->orderBy($sortBy, $direction);
             return;
         }
 
-        if (!IdentityConfig::isOwnedMode() && in_array($sortBy, ['phone', 'status'], true)) {
+        if (in_array($sortBy, ['username', 'phone', 'status', 'last_login_at'], true)) {
             $profilesTable = config('identity.tables.profiles', 'identity_profiles');
             $usersTable = IdentityConfig::usersTable();
             $query->leftJoin($profilesTable, "{$profilesTable}.user_id", '=', "{$usersTable}.id")
@@ -299,41 +289,47 @@ class UserRepository implements UserRepositoryInterface
             return;
         }
 
-        if (IdentityConfig::isOwnedMode() && in_array($sortBy, ['phone', 'status'], true) && Schema::hasColumn(IdentityConfig::usersTable(), $sortBy)) {
-            $query->orderBy($sortBy, $direction);
-            return;
-        }
-
         if (Schema::hasColumn(IdentityConfig::usersTable(), 'created_at')) {
             $query->orderBy('created_at', 'desc');
         }
     }
 
-    protected function hydrateSharedProfile(Model $user): Model
+    protected function hydrateIdentityProfile(Model $user): Model
     {
-        if (IdentityConfig::isOwnedMode()) {
-            return $user;
-        }
-
         $profile = IdentityProfile::query()->where('user_id', $user->id)->first();
 
         if (!$profile) {
             return $user;
         }
 
-        foreach ($this->sharedModeProfileFields as $field) {
+        foreach ($this->profileFields as $field) {
             if (array_key_exists($field, $profile->getAttributes())) {
                 $value = $profile->getAttribute($field);
                 if ($field === 'status') {
-                    $value = UserStatus::tryFrom((string) $value) ?? UserStatus::ACTIVE;
+                    if ($value instanceof UserStatus) {
+                        $value = $value;
+                    } else {
+                        $value = UserStatus::tryFrom((string) $value) ?? UserStatus::ACTIVE;
+                    }
                 }
                 $user->setAttribute($field, $value);
-                // Prevent shared profile attributes from being treated as dirty
-                // on the host user model (which may not have these columns).
-                $user->syncOriginalAttribute($field);
             }
         }
 
+        $user->syncOriginal();
+
         return $user;
+    }
+
+    protected function normalizeProfileData(array $profileData): array
+    {
+        if (array_key_exists('status', $profileData) && $profileData['status'] instanceof UserStatus) {
+            $profileData['status'] = $profileData['status']->value;
+        }
+        if (!array_key_exists('status', $profileData) || $profileData['status'] === null || $profileData['status'] === '') {
+            $profileData['status'] = config('identity.user.default_status', 'active');
+        }
+
+        return $profileData;
     }
 }

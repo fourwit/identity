@@ -65,14 +65,6 @@
                         <option value="suspended" {{ request('status') == 'suspended' ? 'selected' : '' }}>Suspended</option>
                     </select>
                 </div>
-                <div class="flex-1 min-w-[170px]">
-                    <label class="mb-1 block text-sm font-medium text-gray-700">Per Page</label>
-                    <select name="per_page" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                        @foreach(config('identity.user.per_page_options', [5, 15, 25, 50, 100, 500, 1000]) as $size)
-                            <option value="{{ $size }}" {{ $selectedPerPage === (string) $size ? 'selected' : '' }}>{{ $size }}</option>
-                        @endforeach
-                    </select>
-                </div>
                 <div class="flex-1 min-w-[140px]">
                     <label class="mb-1 block text-sm font-medium text-gray-700">&nbsp;</label>
                     <button type="submit" class="w-full px-6 py-2 bg-gray-800 text-white rounded-lg">Filter</button>

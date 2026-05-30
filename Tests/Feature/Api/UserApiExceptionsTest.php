@@ -4,6 +4,7 @@ namespace Modules\Identity\Tests\Feature\Api;
 
 use Tests\TestCase;
 use Modules\Identity\Models\User;
+use Modules\Identity\Models\IdentityProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Identity\Support\BootstrapsIdentitySchema;
 
@@ -27,7 +28,8 @@ class UserApiExceptionsTest extends TestCase
 
     public function test_that_cannot_delete_main_admin_user()
     {
-        User::factory()->create(['id' => 1, 'name' => 'Super Admin', 'status' => 'active']);
+        $admin = User::factory()->create(['id' => 1, 'name' => 'Super Admin']);
+        IdentityProfile::updateOrCreate(['user_id' => $admin->id], ['status' => 'active']);
         $this->deleteJson('/api/v1/users/1')
             ->assertStatus(403)
             ->assertJson(['success' => false, 'message' => 'Cannot delete the main admin user']);

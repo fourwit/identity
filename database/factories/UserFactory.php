@@ -13,12 +13,8 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'first_name' => fake()->firstName(),
-            'last_name' => fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
-            'phone' => fake()->phoneNumber(),
-            'status' => 'active',
-            'password' => bcrypt('password'),
+            'password' => 'password',
             'email_verified_at' => now(),
         ];
     }

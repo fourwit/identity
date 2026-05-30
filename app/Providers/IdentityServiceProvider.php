@@ -121,6 +121,10 @@ class IdentityServiceProvider extends ModuleServiceProvider
             $this->publishes([
                 $configPath => config_path('identity.php'),
             ], 'identity-config');
+
+            $this->publishes([
+                $configPath => config_path('identity.php'),
+            ], 'config');
         }
 
         $this->mergeConfigFrom(

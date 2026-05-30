@@ -141,8 +141,10 @@ class UserRepositoryTest extends TestCase
     /** @test */
     public function test_search_with_status_filter()
     {
-        User::factory()->create(['name' => 'Active User', 'status' => 'active']);
-        User::factory()->create(['name' => 'Inactive User', 'status' => 'inactive']);
+        $active = User::factory()->create(['name' => 'Active User']);
+        IdentityProfile::updateOrCreate(['user_id' => $active->id], ['status' => 'active']);
+        $inactive = User::factory()->create(['name' => 'Inactive User']);
+        IdentityProfile::updateOrCreate(['user_id' => $inactive->id], ['status' => 'inactive']);
 
         $results = $this->repository->search(null, 'active');
 

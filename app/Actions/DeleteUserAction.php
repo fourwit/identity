@@ -9,7 +9,6 @@ use Modules\Identity\Contracts\UserRepositoryInterface;
 use Modules\Identity\Exceptions\UserNotFoundException;
 use Modules\Identity\Exceptions\CannotDeleteUserException;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DeleteUserAction
 {
@@ -23,7 +22,7 @@ class DeleteUserAction
         $userName = $user->name;
         $normalizedName = strtolower(trim((string) $userName));
         $userEmail = strtolower(trim((string) ($user->email ?? '')));
-        $userUuid = trim((string) ($user->uuid ?? ''));
+        $userUuid = trim((string) ($user->uuid ?? $user->identityProfile?->uuid ?? ''));
 
         if (config('identity.protection.enabled', true)) {
             $configuredUuid = trim((string) config('identity.protection.super_admin_uuid', ''));
@@ -38,13 +37,6 @@ class DeleteUserAction
             if ($isProtectedUser) {
                 throw new CannotDeleteUserException('Cannot delete the main admin user');
             }
-        }
-
-        $strategy = (string) config('identity.deletion.strategy', 'safe');
-        $usesSoftDeletes = in_array(SoftDeletes::class, class_uses_recursive($user), true);
-
-        if ($strategy === 'safe' && !$usesSoftDeletes) {
-            throw new CannotDeleteUserException('Safe deletion strategy requires SoftDeletes on the user model.');
         }
 
         $this->repository->delete($user);
