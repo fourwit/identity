@@ -7,7 +7,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
         
         <!-- Flash Messages -->
-        @if ($errors->any())
+        @if ($errors->any() && ! $errors->has('delete_password'))
             <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <div class="flex items-start gap-3">
                     <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -164,6 +164,62 @@
                     </div>
                 </form>
             </div>
+
+            <!-- Delete Account -->
+            <div class="mt-12 pt-8 border-t">
+                <div class="bg-red-50 border border-red-200 rounded-2xl p-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900">Delete your own account</h2>
+                            <p class="text-sm text-gray-600 mt-2">
+                                This permanently deletes your account after confirming your current password.
+                                Super admin protection still applies when configured in Identity.
+                            </p>
+                        </div>
+                        <button type="button"
+                                onclick="openDeleteAccountModal()"
+                                class="px-6 py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition">
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="deleteAccountModal" class="@if($errors->has('delete_password')) flex @else hidden @endif fixed inset-0 z-50 bg-black/50 items-center justify-center px-4">
+                <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900">Confirm account deletion</h3>
+                            <p class="mt-2 text-sm text-gray-600">
+                                Enter your current password to delete your account.
+                            </p>
+                        </div>
+                        <button type="button" onclick="closeDeleteAccountModal()" class="text-gray-400 hover:text-gray-600">✕</button>
+                    </div>
+
+                    <form method="POST" action="{{ url('/account/delete-account') }}" class="mt-6 space-y-4">
+                        @csrf
+                        @method('DELETE')
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Current Password</label>
+                            <input type="password" name="delete_password"
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 @error('delete_password') border-red-500 @enderror">
+                            @error('delete_password') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-2">
+                            <button type="button" onclick="closeDeleteAccountModal()"
+                                    class="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                    class="px-4 py-2.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700">
+                                Delete My Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         @else
             <!-- Fallback if not authenticated (should be blocked by middleware, but kept for design preview) -->
             <div class="text-center py-12 text-gray-400">
@@ -175,3 +231,22 @@
     </div>
 </div>
 @endsection
+
+<script>
+function openDeleteAccountModal() {
+    document.getElementById('deleteAccountModal').classList.remove('hidden');
+    document.getElementById('deleteAccountModal').classList.add('flex');
+}
+
+function closeDeleteAccountModal() {
+    const modal = document.getElementById('deleteAccountModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+@if ($errors->has('delete_password'))
+document.addEventListener('DOMContentLoaded', function () {
+    openDeleteAccountModal();
+});
+@endif
+</script>

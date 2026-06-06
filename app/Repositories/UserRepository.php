@@ -47,10 +47,20 @@ class UserRepository implements UserRepositoryInterface
         return IdentityConfig::userModelClass();
     }
 
+    public function userModel(): string
+    {
+        return $this->userModelClass();
+    }
+
     protected function query(): Builder
     {
         $modelClass = $this->userModelClass();
         return $modelClass::query();
+    }
+
+    public function userQuery(): Builder
+    {
+        return $this->query();
     }
 
     public function getAll(?int $perPage = null): LengthAwarePaginator|Collection

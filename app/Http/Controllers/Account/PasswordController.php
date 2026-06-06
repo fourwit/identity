@@ -4,14 +4,14 @@ namespace Modules\Identity\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
 use Modules\Identity\Http\Requests\Account\UpdatePasswordRequest;
+use Modules\Identity\Services\IdentityManager;
 
 class PasswordController extends Controller
 {
-    public function update(UpdatePasswordRequest $request)
+    public function update(UpdatePasswordRequest $request, IdentityManager $identity)
     {
         $user = auth()->user();
-        $user->password = $request->password;
-        $user->save();
+        $identity->updateUserPassword($user, $request->current_password, $request->password, 'web');
 
         if ($request->expectsJson()) {
             return response()->json([

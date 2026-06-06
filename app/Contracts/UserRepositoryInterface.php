@@ -4,11 +4,16 @@ namespace Modules\Identity\Contracts;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 interface UserRepositoryInterface
 {
     public function getAll(?int $perPage = null): LengthAwarePaginator|Collection;
+
+    public function userModel(): string;
+
+    public function userQuery(): Builder;
 
     public function findById(int $id): ?Model;
 

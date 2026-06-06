@@ -36,6 +36,9 @@ Route::middleware(config('identity.routes.middleware.web', ['web', "auth:{$webGu
     Route::put('/password', [PasswordController::class, 'update'])
         ->name('password.update');
 
+    Route::delete('/delete-account', [ProfileController::class, 'destroy'])
+        ->name('account.delete');
+
     Route::delete('/avatar', [ProfileController::class, 'removeAvatar'])
         ->name('avatar.remove');
 

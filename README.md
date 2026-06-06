@@ -144,6 +144,82 @@ IDENTITY_ACCOUNT_WEB_ROUTES=false
 
 ---
 
+## 5.1 Public PHP API
+
+Use the `Identity` facade from your host app. It keeps repositories hidden and routes all work through the module’s internal manager/actions layer.
+
+### Import
+```php
+use Modules\Identity\Facades\Identity;
+```
+
+### User management
+```php
+Identity::createUser(array $data);
+Identity::updateUser($user, array $data);
+Identity::deleteUser($user);
+```
+
+### User lookup and listing
+```php
+Identity::findUserById($id);
+Identity::findUserByEmail($email);
+Identity::findUserByUuid($uuid);
+Identity::userModel();
+Identity::userQuery();
+Identity::allUsers();
+Identity::searchUsers(?string $term = null, ?string $status = null, ?int $perPage = null);
+Identity::activeUsers();
+```
+
+### Account/profile actions
+```php
+Identity::updateAccountProfile($user, array $data);
+Identity::updateUserPassword($user, string $currentPassword, string $newPassword);
+Identity::deleteOwnAccount($user, string $currentPassword);
+```
+
+### Dashboard/support helpers
+```php
+Identity::activityLogsCount();
+```
+
+### Example usage in a host controller
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Modules\Identity\Facades\Identity;
+
+class DashboardController extends Controller
+{
+    public function index(Request $request)
+    {
+        $users = Identity::searchUsers(
+            term: $request->get('search'),
+            status: $request->get('status'),
+            perPage: $request->get('per_page')
+        );
+
+        $activeUsersCount = Identity::activeUsers()?->total() ?? 0;
+        $activityLogsCount = Identity::activityLogsCount();
+
+        return view('dashboard', compact('users', 'activeUsersCount', 'activityLogsCount'));
+    }
+}
+```
+
+Notes:
+- `updateAccountProfile()` is the preferred entrypoint for Breeze/Jetstream/profile-page integration.
+- `updateUser()` remains the generic update method for admin or internal use.
+- The module keeps repository access internal; host apps should consume only the facade.
+- `userModel()` returns the configured user model class string.
+- `userQuery()` returns a configured query builder for the user model.
+
+---
+
 ## 6. Layout Integration (Web)
 
 Identity views are layout-configurable:
@@ -158,6 +234,7 @@ Common options:
 - `identity::components.layouts.section` (generic section adapter)
 - `identity::components.layouts.blank` (embedded/content-only)
 - `layouts.app` (host layout, if available)
+- `layouts.identity` (Jetstream host bridge layout, recommended for Jetstream apps)
 - `layouts.admin` (host layout, if available)
 
 ### Published view overrides
