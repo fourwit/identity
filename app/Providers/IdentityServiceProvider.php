@@ -131,13 +131,7 @@ class IdentityServiceProvider extends ModuleServiceProvider
             $moduleBasePath.'/config/identity.php', 'identity'
         );
 
-        foreach (glob($moduleBasePath.'/database/migrations/*.php') as $migrationFile) {
-            if (!IdentityConfig::isOwnedMode() && str_contains($migrationFile, 'create_users_table')) {
-                continue;
-            }
-
-            $this->loadMigrationsFrom($migrationFile);
-        }
+        $this->loadMigrationsFrom($moduleBasePath.'/database/migrations');
         
         if (IdentityConfig::isOwnedMode()) {
             IdentityConfig::userModelClass()::observe(UserObserver::class);

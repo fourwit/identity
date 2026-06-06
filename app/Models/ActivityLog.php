@@ -4,6 +4,7 @@ namespace Modules\Identity\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Modules\Identity\Database\Factories\ActivityLogFactory;
 
 class ActivityLog extends Model
@@ -27,7 +28,7 @@ class ActivityLog extends Model
         'properties' => 'array',
     ];
 
-    public function subject()
+    public function subject(): MorphTo
     {
         return $this->morphTo();
     }

@@ -149,7 +149,13 @@ class UserRepository implements UserRepositoryInterface
 
     public function delete(Model $user): bool
     {
-        return $user->delete();
+        $deleted = $user->delete();
+
+        if ($deleted && config('identity.deletion.strategy', 'safe') === 'safe') {
+            IdentityProfile::where('user_id', $user->id)->delete();
+        }
+
+        return $deleted;
     }
 
     public function search(?string $term, ?string $status = null, ?int $perPage = null, ?string $sortBy = null, ?string $sortDir = null): LengthAwarePaginator|Collection

@@ -69,18 +69,18 @@ php artisan migrate
 ```bash
 php artisan identity:doctor
 ```
-4. Optional profile backfill in shared mode:
+4. Optional profile sync in shared mode:
 ```bash
 php artisan identity:sync-profiles
 ```
 
 ---
 
-## 3.1 Fresh Install vs Upgrade Checklist
+## 3.1 Setup Checklist
 
 Use this quick guide to avoid migration confusion.
 
-### Fresh install (new project / clean database)
+### Current setup
 1. Set mode and mapping in `.env` (`IDENTITY_MODE`, `IDENTITY_USER_MODEL`, table names).
 2. Run:
 ```bash
@@ -92,25 +92,10 @@ php artisan identity:doctor
 php artisan identity:sync-profiles
 ```
 
-### Upgrade existing install (from older fat `users` schema)
-1. Back up database.
-2. Pull latest module code.
-3. Run:
-```bash
-php artisan migrate
-```
-4. Validate:
-```bash
-php artisan identity:doctor
-```
-5. Optional safety sync for any users created outside module actions:
-```bash
-php artisan identity:sync-profiles
-```
-
 Notes:
-- The backfill migration `2026_06_01_000000_backfill_identity_profiles_from_users.php` is part of upgrade safety and should remain.
 - In shared mode, host `users` is not required to include identity-only columns like `uuid`, `username`, `phone`, `status`, etc.
+- This package is currently pre-v1; schema is considered the current baseline.
+- If `IDENTITY_DELETION_STRATEGY=safe`, deleting a user will soft-delete both the host `users` record and the matching `identity_profiles` record.
 
 ---
 
@@ -136,16 +121,6 @@ If existing users were created outside module actions (for example via Breeze/Ti
 ```bash
 php artisan identity:sync-profiles
 ```
-
-### Upgrade note (important)
-If you are upgrading from an older Identity version that stored identity fields directly on `users`, the module includes:
-- `2026_06_01_000000_backfill_identity_profiles_from_users.php`
-
-Purpose:
-- Copies legacy identity columns from `users` into `identity_profiles` (idempotent).
-- Prevents data loss during transition to thin `users` + profile-owned identity attributes.
-
-Do not remove this migration for upgrade paths. It is harmless for fresh installs and no-ops when legacy columns are absent.
 
 ---
 
@@ -194,9 +169,41 @@ Published path:
 Resolution order is host overrides first, then module fallback.
 
 ### Tailwind note for host apps
-If you use package views directly (without publishing), include package Blade paths in Tailwind `content`.
+If you use package views directly (without publishing), include the package Blade paths in Tailwind `content`.
+
+Example `tailwind.config.js`:
+```js
+content: [
+  './app/**/*.php',
+  './resources/**/*.blade.php',
+  './resources/**/*.js',
+  './resources/**/*.vue',
+  './vendor/fourwit/identity/resources/views/**/*.blade.php',
+  './vendor/identity/resources/views/**/*.blade.php',
+]
+```
+
+If you keep using the package source during local development, also include the package path itself:
+```js
+content: [
+  './app/**/*.php',
+  './resources/**/*.blade.php',
+  '/var/www/html/fourwit-packages/fourwit-identity/resources/views/**/*.blade.php',
+]
+```
+
+Important for host apps:
+- If the module is mounted from a local path during development, the host app’s Tailwind build must scan the package source path.
+- If you only scan `resources/views` inside the host app, Tailwind will not generate utilities used by the module’s admin/account pages.
 
 If you want full visual customization, publish views and edit the published copies.
+
+### Activity log search columns
+You can control which activity-log columns are searchable from the host app:
+```env
+IDENTITY_ACTIVITY_LOG_SEARCHABLE_FIELDS=description,source,ip_address,performed_by
+```
+Use `performed_by` to search by the causer name, including soft-deleted users.
 
 ### Publish options (recommended)
 You can publish specific assets instead of relying only on `.env`:

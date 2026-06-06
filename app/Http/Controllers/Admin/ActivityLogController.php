@@ -15,7 +15,8 @@ class ActivityLogController extends Controller
 
         // Search by description
         if ($request->filled('search')) {
-            $query->where('description', 'like', '%' . $request->search . '%');
+            $searchTerm = '%' . $request->search . '%';
+            $query->where('description', 'like', $searchTerm);
         }
 
         // Filter by source
