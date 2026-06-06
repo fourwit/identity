@@ -22,11 +22,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class UserController extends BaseApiController
 {
-    private $source = "api";
-    
     public function __construct(
         protected UserRepositoryInterface $repository
     ) {}
+
+    protected function resolveUser(Model|int|string $id): Model
+    {
+        $userId = $id instanceof Model ? (int) $id->getKey() : (int) $id;
+
+        return $this->repository->findByIdOrFail($userId);
+    }
 
     public function index(Request $request)
     {
@@ -61,7 +66,7 @@ class UserController extends BaseApiController
 
     public function show($id)
     {
-        $user = $id instanceof Model ? $id : $this->repository->findByIdOrFail((int) $id);
+        $user = $this->resolveUser($id);
 
         return $this->successResponse(
             new UserResource($user),
@@ -71,7 +76,7 @@ class UserController extends BaseApiController
 
     public function update(UpdateUserRequest $request, $id, UpdateUserAction $action)
     {
-        $user = $id instanceof Model ? $id : $this->repository->findByIdOrFail((int) $id);
+        $user = $this->resolveUser($id);
         
         $data = UserData::fromRequest($request);
         $user = $action->execute($user, $data, 'api');
@@ -84,7 +89,7 @@ class UserController extends BaseApiController
 
     public function destroy($id, DeleteUserAction $action)
     {
-        $user = $id instanceof Model ? $id : $this->repository->findByIdOrFail((int) $id);
+        $user = $this->resolveUser($id);
 
         $action->execute($user, 'api');
 

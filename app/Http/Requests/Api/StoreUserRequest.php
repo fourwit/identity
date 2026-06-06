@@ -20,7 +20,10 @@ class StoreUserRequest extends FormRequest
 
     public function rules(): array
     {
-        return $this->getUserRules(false, null, true, false);
+        $rules = $this->getUserRules(false, null, true, false);
+        $rules['password'] = 'required|string|min:8';
+
+        return $rules;
     }
 
     protected function failedValidation(Validator $validator)

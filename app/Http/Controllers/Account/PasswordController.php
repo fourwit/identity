@@ -11,7 +11,8 @@ class PasswordController extends Controller
     public function update(UpdatePasswordRequest $request, IdentityManager $identity)
     {
         $user = auth()->user();
-        $identity->updateUserPassword($user, $request->current_password, $request->password, 'web');
+        $source = $request->is('api/*') || $request->expectsJson() ? 'api' : 'web';
+        $identity->updateUserPassword($user, $request->current_password, $request->password, $source);
 
         if ($request->expectsJson()) {
             return response()->json([

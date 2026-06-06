@@ -24,9 +24,10 @@ class ProfileController extends Controller
     public function update(UpdateProfileRequest $request, IdentityManager $identity)
     {
         $user = $this->repository->findByIdOrFail((int) auth()->id());
+        $source = $request->is('api/*') || $request->expectsJson() ? 'api' : 'web';
         $user = $identity->updateAccountProfile($user, $request->only([
             'name', 'first_name', 'last_name', 'email', 'phone', 'username', 'timezone', 'locale'
-        ]), 'web');
+        ]), $source);
 
         if ($request->expectsJson()) {
             return new UserResource($user);
@@ -65,7 +66,8 @@ class ProfileController extends Controller
         ]);
 
         $user = $this->repository->findByIdOrFail((int) auth()->id());
-        $identity->deleteOwnAccount($user, $request->string('delete_password')->toString(), 'web');
+        $source = $request->is('api/*') || $request->expectsJson() ? 'api' : 'web';
+        $identity->deleteOwnAccount($user, $request->string('delete_password')->toString(), $source);
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
