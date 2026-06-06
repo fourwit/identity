@@ -344,6 +344,16 @@ class UserRepository implements UserRepositoryInterface
             $profileData['status'] = config('identity.user.default_status', 'active');
         }
 
+        // Set default timezone if not provided or null
+        if (!array_key_exists('timezone', $profileData) || $profileData['timezone'] === null || $profileData['timezone'] === '') {
+            $profileData['timezone'] = config('app.timezone', 'UTC');
+        }
+
+        // Set default locale if not provided or null
+        if (!array_key_exists('locale', $profileData) || $profileData['locale'] === null || $profileData['locale'] === '') {
+            $profileData['locale'] = config('app.locale', 'en');
+        }
+
         return $profileData;
     }
 }

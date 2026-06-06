@@ -136,7 +136,7 @@
                                href="{{ $editUrl }}"
                                class="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition">Edit</a>
                             
-                            <button onclick="confirmDelete({{ $user->id }}, '{{ $user->name }}')"
+                            <button onclick="confirmDelete({{ $user->id }}, {{ json_encode($user->name) }})"
                                     class="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition">Delete</button>
                         </div>
                     </td>

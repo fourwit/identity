@@ -43,11 +43,14 @@ This README is intentionally practical: setup, configuration, usage modes, and d
 ```json
 {
   "repositories": [
-    {
-      "type": "path",
-      "url": "/var/www/html/fourwit-packages/fourwit-identity"
-    }
-  ]
+      {
+          "type": "path",
+          "url": "/var/www/html/fourwit-packages/fourwit-identity",
+          "options": {
+              "symlink": true
+          }
+      }
+  ],
 }
 ```
 
