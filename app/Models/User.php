@@ -70,4 +70,27 @@ class User extends Authenticatable
         $full = trim("{$first} {$last}");
         return $full !== '' ? $full : (string) $this->name;
     }
+
+    /**
+     * Convenience metadata methods (delegated to Identity manager).
+     */
+    public function setMetadata(string $key, $value): bool
+    {
+        return \Modules\Identity\Facades\Identity::setMetadata($this, $key, $value);
+    }
+
+    public function getMetadata(string $key, $default = null)
+    {
+        return \Modules\Identity\Facades\Identity::getMetadata($this, $key, $default);
+    }
+
+    public function hasMetadata(string $key): bool
+    {
+        return \Modules\Identity\Facades\Identity::hasMetadata($this, $key);
+    }
+
+    public function forgetMetadata(string $key): bool
+    {
+        return \Modules\Identity\Facades\Identity::forgetMetadata($this, $key);
+    }
 }

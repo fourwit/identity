@@ -20,6 +20,10 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Modules\Identity\Models\User updateAccountProfile(\Modules\Identity\Models\User $user, array $data, string $source = 'web')
  * @method static \Modules\Identity\Models\User updateUserPassword(\Modules\Identity\Models\User $user, string $currentPassword, string $newPassword, string $source = 'web')
  * @method static void deleteOwnAccount(\Modules\Identity\Models\User $user, string $currentPassword, string $source = 'web')
+ * @method static bool setMetadata(\Modules\Identity\Models\User $user, string $key, $value)
+ * @method static mixed getMetadata(\Modules\Identity\Models\User $user, string $key, $default = null)
+ * @method static bool hasMetadata(\Modules\Identity\Models\User $user, string $key)
+ * @method static bool forgetMetadata(\Modules\Identity\Models\User $user, string $key)
  */
 class Identity extends Facade
 {

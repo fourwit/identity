@@ -5,6 +5,7 @@ namespace Modules\Identity\Services;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 use Modules\Identity\Contracts\UserRepositoryInterface;
+use Modules\Identity\Models\IdentityProfile;
 use Modules\Identity\Events\AccountDeleted;
 use Modules\Identity\Events\ProfileUpdated;
 use Modules\Identity\Events\UserPasswordUpdated;
@@ -157,6 +158,11 @@ class IdentityManager
      */
     public function createUser(array $data): Model
     {
+        // Note: All required field validation (first_name, email, phone, username, etc.)
+        // lives in the request layer via the HasUserValidationRules trait + getUserRules().
+        // This method (and the repository) are intentionally thin — they do not duplicate
+        // validation rules. Callers that go through controllers get validation automatically.
+        // Direct callers (e.g. Authentication module) must provide correct data.
         return $this->repository->create($data);
     }
 
@@ -179,5 +185,88 @@ class IdentityManager
     public function activityLogsCount(): int
     {
         return ActivityLog::count();
+    }
+
+    /**
+     * Set a metadata value for the user (stored on the identity profile).
+     */
+    public function setMetadata(Model $user, string $key, $value): bool
+    {
+        $profile = IdentityProfile::firstOrCreate(
+            ['user_id' => $user->getKey()],
+            ['metadata' => []]
+        );
+
+        $metadata = (array) ($profile->metadata ?? []);
+        $metadata[$key] = $value;
+
+        $profile->metadata = $metadata;
+        $saved = $profile->save();
+
+        if ($saved) {
+            $user->setAttribute('metadata', $metadata);
+            $user->syncOriginal();
+        }
+
+        return $saved;
+    }
+
+    /**
+     * Get a metadata value for the user.
+     */
+    public function getMetadata(Model $user, string $key, $default = null)
+    {
+        $profile = IdentityProfile::where('user_id', $user->getKey())->first();
+
+        if (!$profile || !is_array($profile->metadata)) {
+            return $default;
+        }
+
+        $metadata = $profile->metadata;
+        return array_key_exists($key, $metadata) ? $metadata[$key] : $default;
+    }
+
+    /**
+     * Check if a metadata key exists for the user.
+     */
+    public function hasMetadata(Model $user, string $key): bool
+    {
+        $profile = IdentityProfile::where('user_id', $user->getKey())->first();
+
+        if (!$profile || !is_array($profile->metadata)) {
+            return false;
+        }
+
+        return array_key_exists($key, $profile->metadata);
+    }
+
+    /**
+     * Remove a metadata key for the user.
+     */
+    public function forgetMetadata(Model $user, string $key): bool
+    {
+        $profile = IdentityProfile::where('user_id', $user->getKey())->first();
+
+        if (!$profile || !is_array($profile->metadata)) {
+            return false;
+        }
+
+        $metadata = $profile->metadata;
+
+        if (!array_key_exists($key, $metadata)) {
+            return false;
+        }
+
+        unset($metadata[$key]);
+        $profile->metadata = $metadata;
+
+        $saved = $profile->save();
+
+        if ($saved) {
+            $user->setAttribute('metadata', $metadata);
+            $user->syncOriginal();
+        }
+
+        return $saved;
     }
 }
