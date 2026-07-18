@@ -7,6 +7,7 @@ use Modules\Identity\Events\ProfileUpdated;
 use Modules\Identity\Events\UserDeleted;
 use Modules\Identity\Events\UserPasswordUpdated;
 use Modules\Identity\Services\ActivityLogger;
+use Modules\Identity\Support\IdentityConfig;
 
 class LogAccountActivityToDatabase
 {
@@ -17,24 +18,30 @@ class LogAccountActivityToDatabase
                 ->except(['password', 'current_password', 'password_confirmation', 'two_factor_secret'])
                 ->all();
 
+            $subject = IdentityConfig::userModelClass()::query()->find($event->userId);
+
             ActivityLogger::log(
                 'Profile updated',
-                $event->user,
+                $subject,
                 ['changed_fields' => array_keys($safeChanges)],
                 'profile_updated',
                 $event->source ?? 'web'
             );
+
             return;
         }
 
         if ($event instanceof UserPasswordUpdated) {
+            $subject = IdentityConfig::userModelClass()::query()->find($event->userId);
+
             ActivityLogger::log(
                 'Password updated',
-                $event->user,
+                $subject,
                 ['changed_fields' => ['password']],
                 'password_updated',
                 $event->source ?? 'web'
             );
+
             return;
         }
 
@@ -46,6 +53,7 @@ class LogAccountActivityToDatabase
                 'account_deleted',
                 $event->source ?? 'web'
             );
+
             return;
         }
 

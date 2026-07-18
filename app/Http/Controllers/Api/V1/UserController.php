@@ -9,6 +9,7 @@ use Modules\Identity\Actions\UpdateUserAction;
 use Modules\Identity\Actions\DeleteUserAction;
 use Modules\Identity\Contracts\UserRepositoryInterface;
 
+use Modules\Identity\Http\Requests\Api\DeleteUserRequest;
 use Modules\Identity\Http\Requests\Api\StoreUserRequest;
 use Modules\Identity\Http\Requests\Api\UpdateUserRequest;
 
@@ -87,7 +88,7 @@ class UserController extends BaseApiController
         );
     }
 
-    public function destroy($id, DeleteUserAction $action)
+    public function destroy(DeleteUserRequest $request, $id, DeleteUserAction $action)
     {
         $user = $this->resolveUser($id);
 

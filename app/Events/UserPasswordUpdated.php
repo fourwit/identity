@@ -10,7 +10,7 @@ class UserPasswordUpdated
     use Dispatchable, SerializesModels;
 
     public function __construct(
-        public object $user,
-        public string $source = 'web'
+        public readonly int $userId,
+        public readonly string $source = 'web',
     ) {}
 }

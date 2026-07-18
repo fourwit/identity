@@ -9,7 +9,7 @@ class UpdateProfileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return auth()->check() && ($this->user()?->can('update', $this->user()) ?? false);
     }
 
     public function rules(): array

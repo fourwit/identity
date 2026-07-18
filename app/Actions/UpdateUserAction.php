@@ -53,7 +53,7 @@ class UpdateUserAction
             $source
         );
 
-        event(new UserUpdated($user, $user->getChanges()));
+        event(UserUpdated::fromModel($user, $user->getChanges()));
 
         return $user;
     }

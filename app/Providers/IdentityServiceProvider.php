@@ -5,6 +5,7 @@ namespace Modules\Identity\Providers;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Modules\Identity\Contracts\IdentityContract;
 use Modules\Identity\Policies\UserPolicy;
 use Modules\Identity\Observers\UserObserver;
 use Modules\Identity\Support\IdentityConfig;
@@ -84,11 +85,11 @@ class IdentityServiceProvider extends ModuleServiceProvider
             }
         });
 
-        // Bind Identity Manager (for Facade)
+        // Bind Identity Manager (for Facade + cross-package Contract)
+        $this->app->singleton(IdentityContract::class, \Modules\Identity\Services\IdentityManager::class);
+
         $this->app->singleton('identity', function ($app) {
-            return new \Modules\Identity\Services\IdentityManager(
-                $app->make(\Modules\Identity\Contracts\UserRepositoryInterface::class)
-            );
+            return $app->make(IdentityContract::class);
         });
 
         // 2. Call parent register to handle the $providers array

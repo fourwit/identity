@@ -19,6 +19,7 @@ class UserApiExceptionsTest extends TestCase
 
         config(['identity.views.layout' => 'identity::components.layouts.master', 'identity.features.account_web_routes' => true]);
         $this->bootstrapIdentitySchemaForTests();
+        $this->actingAsIdentityAdmin();
     }
 
     public function test_that_returns_404_when_user_not_found()
@@ -28,9 +29,9 @@ class UserApiExceptionsTest extends TestCase
 
     public function test_that_cannot_delete_main_admin_user()
     {
-        $admin = User::factory()->create(['id' => 1, 'name' => 'Super Admin']);
+        $admin = User::factory()->create(['name' => 'Super Admin']);
         IdentityProfile::updateOrCreate(['user_id' => $admin->id], ['status' => 'active']);
-        $this->deleteJson('/api/v1/users/1')
+        $this->deleteJson('/api/v1/users/'.$admin->id)
             ->assertStatus(403)
             ->assertJson(['success' => false, 'message' => 'Cannot delete the main admin user']);
     }

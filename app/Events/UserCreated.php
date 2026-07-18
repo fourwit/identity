@@ -2,35 +2,33 @@
 
 namespace Modules\Identity\Events;
 
-use Illuminate\Broadcasting\Channel;
-use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Database\Eloquent\Model;
+use Modules\Identity\Support\UserEventData;
 
 class UserCreated
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
-    public Model $user;
+    use Dispatchable, SerializesModels;
 
-    /**
-     * Create a new event instance.
-     */
-    public function __construct(Model $user)
-    {
-        $this->user = $user;
-    }
+    public function __construct(
+        public readonly int $id,
+        public readonly ?string $uuid,
+        public readonly string $email,
+        public readonly ?string $name,
+        public readonly string $status,
+        public readonly ?string $registeredAt = null,
+    ) {}
 
-    /**
-     * Get the channels the event should be broadcast on.
-     */
-    public function broadcastOn(): array
+    public static function fromModel(Model $user): self
     {
-        return [
-            new PrivateChannel('channel-name'),
-        ];
+        return new self(
+            id: UserEventData::id($user),
+            uuid: UserEventData::uuid($user),
+            email: (string) $user->email,
+            name: $user->name !== null ? (string) $user->name : null,
+            status: UserEventData::statusValue($user),
+            registeredAt: $user->created_at?->toIso8601String(),
+        );
     }
 }

@@ -19,6 +19,7 @@ class UserWebActivityLogTest extends TestCase
 
         config(['identity.views.layout' => 'identity::components.layouts.master', 'identity.features.account_web_routes' => true]);
         $this->bootstrapIdentitySchemaForTests();
+        $this->actingAsIdentityAdmin();
     }
 
     public function test_that_deleting_user_logs_activity()

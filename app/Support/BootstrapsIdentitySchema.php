@@ -3,6 +3,7 @@
 namespace Modules\Identity\Support;
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Modules\Identity\Models\User;
 
@@ -41,5 +42,27 @@ trait BootstrapsIdentitySchema
                 $table->softDeletes();
             });
         }
+    }
+
+    protected function actingAsIdentityAdmin(?User $user = null): User
+    {
+        $user ??= User::factory()->create();
+
+        $this->actingAs($user);
+
+        // Test-only: simulate admin capability until host/RBAC platform decision is implemented.
+        Gate::before(static function ($authenticatedUser, string $ability): ?bool {
+            if ($authenticatedUser === null) {
+                return null;
+            }
+
+            if (! in_array($ability, ['viewAny', 'view', 'create', 'update', 'delete'], true)) {
+                return null;
+            }
+
+            return true;
+        });
+
+        return $user;
     }
 }

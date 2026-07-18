@@ -12,6 +12,7 @@ use Modules\Identity\Actions\DeleteUserAction;
 
 
 use Modules\Identity\Contracts\UserRepositoryInterface;
+use Modules\Identity\Http\Requests\Admin\DeleteUserRequest;
 use Modules\Identity\Http\Requests\Admin\StoreUserRequest;
 use Modules\Identity\Http\Requests\Admin\UpdateUserRequest;
 
@@ -76,7 +77,7 @@ class UserController extends Controller
             ->with('success', 'User updated successfully.');
     }
 
-    public function destroy(Request $request, Model $user, DeleteUserAction $action)
+    public function destroy(DeleteUserRequest $request, Model $user, DeleteUserAction $action)
     {
         $user = $this->repository->findByIdOrFail((int) $user->getKey());
         $action->execute($user, 'web');

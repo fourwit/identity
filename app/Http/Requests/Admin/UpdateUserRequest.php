@@ -5,6 +5,8 @@ namespace Modules\Identity\Http\Requests\Admin;
 use Illuminate\Foundation\Http\FormRequest;
 use Modules\Identity\Enums\UserStatus;
 use Modules\Identity\Http\Requests\Concerns\HasUserValidationRules;
+use Modules\Identity\Support\IdentityConfig;
+use Illuminate\Database\Eloquent\Model;
 
 class UpdateUserRequest extends FormRequest
 {
@@ -12,7 +14,12 @@ class UpdateUserRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return true;
+        $user = $this->route('user');
+        $model = $user instanceof Model
+            ? $user
+            : IdentityConfig::userModelClass()::query()->findOrFail((int) $user);
+
+        return $this->user()?->can('update', $model) ?? false;
     }
 
     public function rules(): array

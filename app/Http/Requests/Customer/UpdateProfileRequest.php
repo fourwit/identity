@@ -4,11 +4,13 @@ namespace Modules\Identity\Http\Requests\Customer;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+use Modules\Identity\Support\IdentityConfig;
+
 class UpdateProfileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return auth()->check() && ($this->user()?->can('update', $this->user()) ?? false);
     }
 
     public function rules(): array

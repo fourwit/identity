@@ -19,6 +19,7 @@ class UserWebExceptionsTest extends TestCase
 
         config(['identity.views.layout' => 'identity::components.layouts.master', 'identity.features.account_web_routes' => true]);
         $this->bootstrapIdentitySchemaForTests();
+        $this->actingAsIdentityAdmin();
     }
 
     public function test_that_returns_404_when_user_not_found_web()
@@ -28,9 +29,9 @@ class UserWebExceptionsTest extends TestCase
 
     public function test_that_cannot_delete_main_admin_user_web()
     {
-        $admin = User::factory()->create(['id' => 1, 'name' => 'Super Admin']);
+        $admin = User::factory()->create(['name' => 'Super Admin']);
         IdentityProfile::updateOrCreate(['user_id' => $admin->id], ['status' => 'active']);
-        $response = $this->delete('/admin/users/1');
+        $response = $this->delete('/admin/users/'.$admin->id);
         $response->assertRedirect();
         $response->assertSessionHas('error', 'Cannot delete the main admin user');
     }

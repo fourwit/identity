@@ -61,7 +61,7 @@ class UpdateUserActionTest extends TestCase
         $this->assertEquals('inactive', $updatedUser->status->value);
 
         Event::assertDispatched(UserUpdated::class, function ($event) use ($user) {
-            return $event->user->id === $user->id;
+            return $event->id === $user->id;
         });
     }
 

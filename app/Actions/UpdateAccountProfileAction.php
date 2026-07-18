@@ -26,8 +26,13 @@ class UpdateAccountProfileAction
 
         $fresh = $this->repository->findByIdOrFail((int) $user->getKey());
 
-        event(new ProfileUpdated($fresh, $payload, $source));
-        event(new UserUpdated($fresh, $payload));
+        event(new ProfileUpdated(
+            userId: (int) $fresh->getKey(),
+            changes: $payload,
+            source: $source,
+            email: $fresh->email !== null ? (string) $fresh->email : null,
+        ));
+        event(UserUpdated::fromModel($fresh, $payload));
 
         return $fresh;
     }

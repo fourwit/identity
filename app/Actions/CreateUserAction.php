@@ -44,7 +44,7 @@ class CreateUserAction
             $source
         );
 
-        event(new UserCreated($user));
+        event(UserCreated::fromModel($user));
 
         return $user;
     }

@@ -25,7 +25,7 @@ class UpdateUserPasswordAction
         ]);
 
         $fresh = $this->repository->findByIdOrFail((int) $user->getKey());
-        event(new UserPasswordUpdated($fresh, $source));
+        event(new UserPasswordUpdated((int) $fresh->getKey(), $source));
 
         return $fresh;
     }

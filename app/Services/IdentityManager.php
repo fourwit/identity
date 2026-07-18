@@ -2,17 +2,21 @@
 
 namespace Modules\Identity\Services;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Hash;
+use Modules\Identity\Actions\CreateUserAction;
+use Modules\Identity\Actions\DeleteOwnAccountAction;
+use Modules\Identity\Actions\DeleteUserAction;
+use Modules\Identity\Actions\UpdateAccountProfileAction;
+use Modules\Identity\Actions\UpdateUserAction;
+use Modules\Identity\Actions\UpdateUserPasswordAction;
+use Modules\Identity\Contracts\IdentityContract;
 use Modules\Identity\Contracts\UserRepositoryInterface;
-use Modules\Identity\Models\IdentityProfile;
-use Modules\Identity\Events\AccountDeleted;
-use Modules\Identity\Events\ProfileUpdated;
-use Modules\Identity\Events\UserPasswordUpdated;
-use Modules\Identity\Exceptions\InvalidCurrentPasswordException;
+use Modules\Identity\DTOs\UserData;
 use Modules\Identity\Models\ActivityLog;
+use Modules\Identity\Models\IdentityProfile;
 
-class IdentityManager
+class IdentityManager implements IdentityContract
 {
     public function __construct(
         protected UserRepositoryInterface $repository
@@ -23,61 +27,26 @@ class IdentityManager
         return $this->repository->userModel();
     }
 
-    public function userQuery()
+    public function userQuery(): Builder
     {
         return $this->repository->userQuery();
     }
 
     public function updateAccountProfile(Model $user, array $data, string $source = 'web'): Model
     {
-        $payload = $data;
-
-        if (array_key_exists('email', $payload) && (string) $payload['email'] !== (string) $user->email) {
-            $payload['email_verified_at'] = null;
-        }
-
-        $this->updateUser($user, $payload);
-        $fresh = $this->repository->findByIdOrFail((int) $user->getKey());
-
-        event(new ProfileUpdated($fresh, $payload, $source));
-
-        return $fresh;
+        return app(UpdateAccountProfileAction::class)->execute($user, $data, $source);
     }
 
     public function updateUserPassword(Model $user, string $currentPassword, string $newPassword, string $source = 'web'): Model
     {
-        if (! Hash::check($currentPassword, (string) $user->password)) {
-            throw new InvalidCurrentPasswordException();
-        }
-
-        $this->repository->update($user, [
-            'password' => Hash::make($newPassword),
-        ]);
-
-        $fresh = $this->repository->findByIdOrFail((int) $user->getKey());
-        event(new UserPasswordUpdated($fresh, $source));
-
-        return $fresh;
+        return app(UpdateUserPasswordAction::class)->execute($user, $currentPassword, $newPassword, $source);
     }
 
     public function deleteOwnAccount(Model $user, string $currentPassword, string $source = 'web'): void
     {
-        if (! Hash::check($currentPassword, (string) $user->password)) {
-            throw new InvalidCurrentPasswordException();
-        }
-
-        $id = $user->getKey();
-        $name = $user->name ?? null;
-        $email = $user->email ?? null;
-
-        $this->deleteUser($user);
-
-        event(new AccountDeleted((string) $id, $name, $email, $source));
+        app(DeleteOwnAccountAction::class)->execute($user, $currentPassword, $source);
     }
 
-    /**
-     * Find user by ID
-     */
     public function findUserById(int $id): ?Model
     {
         return $this->repository->findById($id);
@@ -88,9 +57,6 @@ class IdentityManager
         return $this->findUserById($id);
     }
 
-    /**
-     * Find user by email
-     */
     public function findUserByEmail(string $email): ?Model
     {
         return $this->repository->findByEmail($email);
@@ -101,9 +67,6 @@ class IdentityManager
         return $this->findUserByEmail($email);
     }
 
-    /**
-     * Find user by UUID
-     */
     public function findUserByUuid(string $uuid): ?Model
     {
         return $this->repository->findByUuid($uuid);
@@ -114,9 +77,6 @@ class IdentityManager
         return $this->findUserByUuid($uuid);
     }
 
-    /**
-     * Get all users (paginated)
-     */
     public function allUsers(?int $perPage = null)
     {
         return $this->repository->getAll($perPage);
@@ -127,9 +87,6 @@ class IdentityManager
         return $this->allUsers($perPage);
     }
 
-    /**
-     * Search users
-     */
     public function searchUsers(?string $term, ?string $status = null, ?int $perPage = null)
     {
         return $this->repository->search($term, $status, $perPage);
@@ -140,9 +97,6 @@ class IdentityManager
         return $this->searchUsers($term, $status, $perPage);
     }
 
-    /**
-     * Get active users only
-     */
     public function activeUsers(?int $perPage = null)
     {
         return $this->repository->search(null, 'active', $perPage);
@@ -153,33 +107,30 @@ class IdentityManager
         return $this->activeUsers($perPage);
     }
 
-    /**
-     * Create a new user
-     */
     public function createUser(array $data): Model
     {
-        // Note: All required field validation (first_name, email, phone, username, etc.)
-        // lives in the request layer via the HasUserValidationRules trait + getUserRules().
-        // This method (and the repository) are intentionally thin — they do not duplicate
-        // validation rules. Callers that go through controllers get validation automatically.
-        // Direct callers (e.g. Authentication module) must provide correct data.
-        return $this->repository->create($data);
+        return app(CreateUserAction::class)->execute(
+            $this->arrayToUserData($data),
+            (string) ($data['source'] ?? 'facade')
+        );
     }
 
-    /**
-     * Update a user
-     */
     public function updateUser(Model $user, array $data): bool
     {
-        return $this->repository->update($user, $data);
+        app(UpdateUserAction::class)->execute(
+            $user,
+            $this->arrayToUserData($data),
+            (string) ($data['source'] ?? 'facade')
+        );
+
+        return true;
     }
 
-    /**
-     * Delete a user
-     */
     public function deleteUser(Model $user): bool
     {
-        return $this->repository->delete($user);
+        app(DeleteUserAction::class)->execute($user, 'facade');
+
+        return true;
     }
 
     public function activityLogsCount(): int
@@ -187,10 +138,7 @@ class IdentityManager
         return ActivityLog::count();
     }
 
-    /**
-     * Set a metadata value for the user (stored on the identity profile).
-     */
-    public function setMetadata(Model $user, string $key, $value): bool
+    public function setMetadata(Model $user, string $key, mixed $value): bool
     {
         $profile = IdentityProfile::firstOrCreate(
             ['user_id' => $user->getKey()],
@@ -211,10 +159,7 @@ class IdentityManager
         return $saved;
     }
 
-    /**
-     * Get a metadata value for the user.
-     */
-    public function getMetadata(Model $user, string $key, $default = null)
+    public function getMetadata(Model $user, string $key, mixed $default = null): mixed
     {
         $profile = IdentityProfile::where('user_id', $user->getKey())->first();
 
@@ -223,12 +168,10 @@ class IdentityManager
         }
 
         $metadata = $profile->metadata;
+
         return array_key_exists($key, $metadata) ? $metadata[$key] : $default;
     }
 
-    /**
-     * Check if a metadata key exists for the user.
-     */
     public function hasMetadata(Model $user, string $key): bool
     {
         $profile = IdentityProfile::where('user_id', $user->getKey())->first();
@@ -240,9 +183,6 @@ class IdentityManager
         return array_key_exists($key, $profile->metadata);
     }
 
-    /**
-     * Remove a metadata key for the user.
-     */
     public function forgetMetadata(Model $user, string $key): bool
     {
         $profile = IdentityProfile::where('user_id', $user->getKey())->first();
@@ -268,5 +208,19 @@ class IdentityManager
         }
 
         return $saved;
+    }
+
+    protected function arrayToUserData(array $data): UserData
+    {
+        return new UserData(
+            name: $data['name'] ?? null,
+            firstName: $data['first_name'] ?? $data['firstName'] ?? null,
+            lastName: $data['last_name'] ?? $data['lastName'] ?? null,
+            email: $data['email'] ?? null,
+            phone: $data['phone'] ?? null,
+            username: $data['username'] ?? null,
+            status: is_string($data['status'] ?? null) ? $data['status'] : (is_object($data['status'] ?? null) && method_exists($data['status'], 'value') ? $data['status']->value : null),
+            password: $data['password'] ?? null,
+        );
     }
 }

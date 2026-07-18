@@ -10,8 +10,9 @@ class ProfileUpdated
     use Dispatchable, SerializesModels;
 
     public function __construct(
-        public object $user,
-        public array $changes = [],
-        public string $source = 'web'
+        public readonly int $userId,
+        public readonly array $changes = [],
+        public readonly string $source = 'web',
+        public readonly ?string $email = null,
     ) {}
 }

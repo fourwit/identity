@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static \Modules\Identity\Models\User|null findUserById(int $id)
+ * @see \Modules\Identity\Contracts\IdentityContract
  * @method static \Modules\Identity\Models\User|null findUserByEmail(string $email)
  * @method static \Modules\Identity\Models\User|null findUserByUuid(string $uuid)
  * @method static string userModel()

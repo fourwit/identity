@@ -41,6 +41,29 @@ class CreateUserActionTest extends TestCase
     }
 
     /** @test */
+    public function test_identity_manager_create_user_dispatches_user_created_event()
+    {
+        Event::fake([UserCreated::class]);
+
+        $manager = app(\Modules\Identity\Contracts\IdentityContract::class);
+
+        $user = $manager->createUser([
+            'name' => 'Manager User',
+            'first_name' => 'Manager',
+            'last_name' => 'User',
+            'email' => 'manager@example.com',
+            'status' => 'active',
+            'password' => 'secret1234',
+        ]);
+
+        $this->assertInstanceOf(User::class, $user);
+
+        Event::assertDispatched(UserCreated::class, function (UserCreated $event) {
+            return $event->email === 'manager@example.com';
+        });
+    }
+
+    /** @test */
     public function test_creates_user_successfully()
     {
         $data = new UserData(
@@ -102,7 +125,7 @@ class CreateUserActionTest extends TestCase
         $this->action->execute($data, 'api');
 
         Event::assertDispatched(UserCreated::class, function ($event) {
-            return $event->user->email === 'test@example.com';
+            return $event->email === 'test@example.com';
         });
     }
 }
